@@ -3,7 +3,8 @@
  * AI-Powered Token Pipeline
  * ==========================
  * Renders a Figma frame as an image, collects its structural data,
- * and sends both to Claude to produce semantic design tokens.
+ * sends both to Claude to produce semantic design tokens, and saves
+ * the result as a named set in sets/.
  *
  * Usage:
  *   node pipeline.js --file <FILE_KEY> --frame <NODE_ID>
@@ -13,8 +14,7 @@
  *   --frame    Frame node ID, e.g. "16-495" or "16:495"              [required]
  *   --token    Figma personal access token (or set FIGMA_TOKEN)
  *   --key      Anthropic API key (or set ANTHROPIC_API_KEY)
- *   --output   Destination for tokens.json
- *              (default: ../fluid-prototype/tokens/tokens.json)
+ *   --name     Force a set name (skip interactive prompt)
  *   --dry-run  Print tokens to stdout without writing
  *   --scale    Image export scale 1–4 (default: 2)
  *
@@ -24,9 +24,10 @@
  *   CLAUDE_MODEL       Model override (default: claude-sonnet-4-6)
  */
 
-import { resolve, dirname } from 'path';
-import { fileURLToPath }    from 'url';
-import { writeFile, mkdir }  from 'fs/promises';
+import { resolve, dirname }            from 'path';
+import { fileURLToPath }               from 'url';
+import { writeFile, mkdir, readdir }   from 'fs/promises';
+import { createInterface }             from 'readline';
 
 import { fetchFrame, fetchFrameImage } from './src/figma.js';
 import { collectFrameData }            from './src/collector.js';
@@ -34,6 +35,7 @@ import { buildPromptContent }          from './src/prompt.js';
 import { extractTokens }              from './src/claude.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const SETS_DIR  = resolve(__dirname, 'sets');
 
 // ---------------------------------------------------------------------------
 // Logger
@@ -44,6 +46,7 @@ const log  = (step, msg, extra = '') =>
   console.log(`[${ts()}] ${step.padEnd(10)} ${msg}${extra ? ' — ' + extra : ''}`);
 const ok   = (m) => console.log(`\x1b[32m  ✓  ${m}\x1b[0m`);
 const fail = (m) => console.error(`\x1b[31m  ✗  ${m}\x1b[0m`);
+const dim  = (m) => console.log(`\x1b[2m    ${m}\x1b[0m`);
 
 // ---------------------------------------------------------------------------
 // Arg parser
@@ -63,6 +66,32 @@ function parseArgs(argv) {
 }
 
 // ---------------------------------------------------------------------------
+// Interactive prompt
+// ---------------------------------------------------------------------------
+
+function ask(question) {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise(res => {
+    rl.question(question, answer => { rl.close(); res(answer.trim()); });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// List existing sets
+// ---------------------------------------------------------------------------
+
+async function listExistingSets() {
+  try {
+    const files = await readdir(SETS_DIR);
+    return files
+      .filter(f => f.endsWith('.json'))
+      .map(f => f.replace('.json', ''));
+  } catch {
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -74,10 +103,8 @@ async function run() {
   const fileKey      = args.file  ?? '';
   const frameId      = args.frame ?? '';
   const dryRun       = Boolean(args['dry-run']);
+  const forceName    = args.name  ?? null;
   const scale        = Number(args.scale) || 2;
-  const outputPath   = args.output
-    ? resolve(args.output)
-    : resolve(__dirname, '..', 'fluid-prototype', 'tokens', 'tokens.json');
 
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('  AI Token Pipeline  (vision + structural)');
@@ -97,9 +124,7 @@ async function run() {
 
   log('CONFIG', `File:   ${fileKey}`);
   log('CONFIG', `Frame:  ${frameId}`);
-  log('CONFIG', `Output: ${dryRun ? '(dry-run)' : outputPath}`);
   log('CONFIG', `Model:  ${process.env.CLAUDE_MODEL ?? 'claude-sonnet-4-6'}`);
-  log('CONFIG', `Scale:  ${scale}x`);
   console.log();
 
   // ── 1. Fetch frame data + image in parallel ────────────────────────────
@@ -134,8 +159,10 @@ async function run() {
   );
 
   // ── 3. Build prompt and call Claude ────────────────────────────────────
+  const existingSets = await listExistingSets();
+
   log('CLAUDE', 'Building multimodal prompt (image + data)…');
-  const content = buildPromptContent(imageBase64, collected, { fileKey, frameId });
+  const content = buildPromptContent(imageBase64, collected, { fileKey, frameId }, existingSets);
   ok('Prompt built');
 
   log('CLAUDE', 'Sending to Claude API (this may take a moment)…');
@@ -148,28 +175,56 @@ async function run() {
   }
   ok(`Tokens extracted — ${Object.keys(tokens.colors ?? {}).length} colors, ${Object.keys(tokens.typography ?? {}).length} type styles`);
 
-  // ── 4. Write output ────────────────────────────────────────────────────
+  // ── 4. Name the set ────────────────────────────────────────────────────
+  const suggestedName = tokens._meta?.name ?? frame.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const suggestedDesc = tokens._meta?.description ?? '';
+
+  let setName;
+
+  if (forceName) {
+    setName = forceName;
+  } else if (dryRun) {
+    setName = suggestedName;
+  } else {
+    console.log();
+    console.log('  Claude suggests:');
+    console.log(`    Name:        \x1b[1m${suggestedName}\x1b[0m`);
+    console.log(`    Description: ${suggestedDesc}`);
+    if (existingSets.length > 0) {
+      console.log(`    Existing:    ${existingSets.join(', ')}`);
+    }
+    console.log();
+
+    const answer = await ask(`  Set name [${suggestedName}]: `);
+    setName = answer || suggestedName;
+  }
+
+  // Sanitise
+  setName = setName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+
+  // ── 5. Write to sets/ ──────────────────────────────────────────────────
   if (dryRun) {
     console.log('\n── Generated tokens (dry-run) ─────────────────────────────────\n');
     console.log(JSON.stringify(tokens, null, 2));
     console.log('\n───────────────────────────────────────────────────────────────\n');
   } else {
-    log('WRITE', `Writing to ${outputPath}…`);
-    await mkdir(dirname(outputPath), { recursive: true });
+    await mkdir(SETS_DIR, { recursive: true });
+    const outputPath = resolve(SETS_DIR, `${setName}.json`);
+    const existed    = existingSets.includes(setName);
+
     await writeFile(outputPath, JSON.stringify(tokens, null, 2) + '\n', 'utf-8');
-    ok(`Tokens written to ${outputPath}`);
+    ok(`${existed ? 'Updated' : 'Created'} set "${setName}" → ${outputPath}`);
   }
 
   // ── Done ───────────────────────────────────────────────────────────────
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   ok('Token extraction complete!');
-
-  if (!dryRun) {
-    console.log('\n  Next step — run the prototype pipeline with new tokens:');
-    console.log('    cd ../fluid-prototype');
-    console.log(`    node pipeline.js --file ${fileKey} --frame ${frameId}`);
-  }
-
+  console.log(`\n  The set "${setName}" is now available to the fluid-prototype pipeline.`);
+  console.log('  Run the prototype pipeline — it will pick from all available sets:\n');
+  console.log(`    cd ../fluid-prototype`);
+  console.log(`    node pipeline.js --file ${fileKey} --frame ${frameId}`);
+  console.log('\n  Or describe what the UI should show:\n');
+  console.log(`    node pipeline.js --file ${fileKey} --frame ${frameId} --prompt "navigation with speed 120kmh"`);
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 }
 

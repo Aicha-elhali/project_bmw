@@ -1,0 +1,149 @@
+{
+  "colors": {
+    "primary": "#E86A2A",
+    "primaryHover": "#C95A1E",
+    "primaryLight": "#F0924F",
+    "primarySubtle": "rgba(232,106,42,0.15)",
+    "background": "#1A1A1A",
+    "backgroundLight": "#2A2A2A",
+    "surface": "rgba(100,100,100,0.31)",
+    "text": "#FFFFFF",
+    "textDark": "#1A1A1A",
+    "textSecondary": "rgba(255,255,255,0.7)",
+    "textMuted": "rgba(255,255,255,0.4)",
+    "textOnDark": "#FFFFFF",
+    "textOnDarkSecondary": "rgba(255,255,255,0.7)",
+    "textOnDarkMuted": "rgba(255,255,255,0.4)",
+    "accent": "#E86A2A",
+    "border": "#FFFFFF",
+    "borderDark": "rgba(255,255,255,0.2)",
+    "focusRing": "#E86A2A",
+    "success": "#4CAF82",
+    "error": "#E85555",
+    "overlay": "radial-gradient(circle, rgba(0,0,0,0) 28%, rgba(0,0,0,0.82) 67%)",
+    "shadow": "rgba(0,0,0,0.25)",
+    "shadowStrong": "rgba(0,0,0,0.5)",
+    "backgroundGlow": "radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(180,180,180,0.6) 40%, rgba(60,60,60,0) 80%)",
+    "menuButtonGradient": "linear-gradient(135deg, #6A7282 0%, #364153 100%)",
+    "menuButtonIconGradient": "linear-gradient(135deg, #FFFFFF 0%, #E5E7EB 100%)",
+    "carMarkerGlow": "rgba(237,219,207,0.2)"
+  },
+  "spacing": {
+    "xs": "0.0625rem",
+    "sm": "0.375rem",
+    "md": "0.5rem",
+    "lg": "1rem",
+    "xl": "1.5rem",
+    "xxl": "2rem",
+    "section": "3rem",
+    "touchTarget": "3rem"
+  },
+  "typography": {
+    "heading1": {
+      "size": "6.875rem",
+      "sizeDesktop": "6.875rem",
+      "weight": "300",
+      "family": "'Inter', Arial, Helvetica, sans-serif",
+      "lineHeight": "6rem",
+      "lineHeightDesktop": "6rem",
+      "letterSpacing": "normal"
+    },
+    "heading2": {
+      "size": "1.875rem",
+      "sizeDesktop": "1.875rem",
+      "weight": "400",
+      "family": "'Inter', Arial, Helvetica, sans-serif",
+      "lineHeight": "1.25rem",
+      "lineHeightDesktop": "1.25rem",
+      "letterSpacing": "-0.009375rem"
+    },
+    "heading3": {
+      "size": "1rem",
+      "sizeDesktop": "1rem",
+      "weight": "300",
+      "family": "'Inter', Arial, Helvetica, sans-serif",
+      "lineHeight": "1.5rem",
+      "lineHeightDesktop": "1.5rem",
+      "letterSpacing": "0.005625rem"
+    },
+    "heading": {
+      "size": "1.875rem",
+      "weight": "400",
+      "family": "'Inter', Arial, Helvetica, sans-serif",
+      "lineHeight": "1.25rem"
+    },
+    "subheading": {
+      "size": "1rem",
+      "weight": "300",
+      "family": "'Inter', Arial, Helvetica, sans-serif",
+      "lineHeight": "1.5rem"
+    },
+    "body": {
+      "size": "0.875rem",
+      "weight": "400",
+      "family": "'Inter', Arial, Helvetica, sans-serif",
+      "lineHeight": "1.25rem"
+    },
+    "bodySmall": {
+      "size": "0.875rem",
+      "weight": "400",
+      "family": "'Inter', Arial, Helvetica, sans-serif",
+      "lineHeight": "1.25rem"
+    },
+    "small": {
+      "size": "0.75rem",
+      "weight": "400",
+      "family": "'Inter', Arial, Helvetica, sans-serif",
+      "lineHeight": "1rem"
+    },
+    "label": {
+      "size": "0.75rem",
+      "weight": "400",
+      "family": "'Inter', Arial, Helvetica, sans-serif",
+      "lineHeight": "1rem",
+      "letterSpacing": "normal"
+    }
+  },
+  "fontWeights": {
+    "default": "300",
+    "input": "300",
+    "clickable": "400",
+    "link": "400",
+    "price": "300"
+  },
+  "borderRadius": {
+    "none": "0",
+    "sm": "0.0625rem",
+    "md": "0.125rem",
+    "lg": "0.5rem",
+    "xl": "1rem",
+    "xxl": "1.5rem",
+    "full": "624.9375rem"
+  },
+  "shadows": {
+    "sm": "3px 3px 1px rgba(0,0,0,0.25)",
+    "md": "0px 10px 15px -3px rgba(0,0,0,0.1), 0px 4px 6px -4px rgba(0,0,0,0.1)",
+    "focus": "0 0 0 3px rgba(232,106,42,0.5)",
+    "focusInset": "inset 0 0 0 3px rgba(232,106,42,0.5)"
+  },
+  "transitions": {
+    "fast": "0.15s ease",
+    "medium": "0.3s ease",
+    "slow": "0.5s ease"
+  },
+  "breakpoints": {
+    "small": "480px",
+    "medium": "768px",
+    "large": "1024px",
+    "xl": "1280px",
+    "xxl": "1920px"
+  },
+  "_meta": {
+    "name": "navigation-dark-hud",
+    "description": "Dark automotive navigation HUD with speedometer, status bar, and map glow overlay.",
+    "brand": "Automotive Navigation",
+    "theme": "dark",
+    "source": "Extracted from Figma file 7KXAyktDQstWMRVVE8aOxp, frame 16-495",
+    "font": "Inter"
+  }
+}

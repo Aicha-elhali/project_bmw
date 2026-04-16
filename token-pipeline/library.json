@@ -1,0 +1,20 @@
+{
+  "output": "../fluid-prototype/tokens/tokens.json",
+
+  "sets": [
+    { "name": "brand",     "path": "sets/brand.json",     "priority": 1, "description": "Brand guidelines — colors and core identity" },
+    { "name": "navi",      "path": "sets/navi.json",      "priority": 2, "description": "Navigation screen" },
+    { "name": "dashboard", "path": "sets/dashboard.json", "priority": 3, "description": "Dashboard screen" }
+  ],
+
+  "categoryOverrides": {
+    "colors":       "brand",
+    "typography":   "brand",
+    "fontWeights":  "brand",
+    "spacing":      null,
+    "borderRadius": null,
+    "shadows":      null,
+    "transitions":  null,
+    "breakpoints":  null
+  }
+}

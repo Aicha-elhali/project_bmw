@@ -11,16 +11,16 @@
 /**
  * Build the message content array for Claude (image + text).
  *
- * @param {string} imageBase64    — PNG image of the Figma frame
- * @param {object} collectedData  — Output from collector.js
- * @param {object} meta           — { fileKey, frameId }
+ * @param {string}   imageBase64    — PNG image of the Figma frame
+ * @param {object}   collectedData  — Output from collector.js
+ * @param {object}   meta           — { fileKey, frameId }
+ * @param {string[]} existingSets   — Names of token sets already in sets/
  * @returns {Array} Content blocks for Claude messages API
  */
-export function buildPromptContent(imageBase64, collectedData, meta) {
+export function buildPromptContent(imageBase64, collectedData, meta, existingSets = []) {
   const dataJson = JSON.stringify(collectedData, null, 2);
 
   const content = [
-    // Vision input — Claude sees the actual rendered design
     {
       type: 'image',
       source: {
@@ -29,17 +29,20 @@ export function buildPromptContent(imageBase64, collectedData, meta) {
         data: imageBase64,
       },
     },
-    // Text prompt with structural data + instructions
     {
       type: 'text',
-      text: buildTextPrompt(dataJson, meta),
+      text: buildTextPrompt(dataJson, meta, existingSets),
     },
   ];
 
   return content;
 }
 
-function buildTextPrompt(dataJson, meta) {
+function buildTextPrompt(dataJson, meta, existingSets = []) {
+  const setsHint = existingSets.length > 0
+    ? `\n\nThese token sets already exist: ${existingSets.map(s => `"${s}"`).join(', ')}. If this design clearly belongs to one of them, reuse that name. Otherwise suggest a new one.`
+    : '';
+
   return `You are a design systems engineer. The image above shows a rendered Figma frame. Below is the raw structural data extracted from the same frame (colors, text styles, spacing, gradients, shadows, strokes — each with the Figma node name and context where it appears).
 
 Your task: combine what you SEE in the image with the precise VALUES from the data to produce a semantic design token file.
@@ -146,6 +149,8 @@ Return a single JSON code block with exactly this structure. Fill EVERY field.
     "xxl": ""
   },
   "_meta": {
+    "name": "",
+    "description": "",
     "brand": "",
     "theme": "",
     "source": "Extracted from Figma file ${meta.fileKey}, frame ${meta.frameId}",
@@ -181,6 +186,8 @@ Return a single JSON code block with exactly this structure. Fill EVERY field.
 6. **Transitions & breakpoints** — Figma doesn't store these. Use standard values (0.2s–0.5s ease, 768/1024/1280/1920px).
 
 7. All sizes in **rem** where applicable (spacing, typography). Base = 16px.
+
+8. **Set naming** — In \`_meta.name\`, suggest a short kebab-case name for this token set based on what you see (e.g. "navigation-dark-hud", "dashboard-gauges", "brand-homepage"). Max 30 characters, lowercase, hyphens only. In \`_meta.description\`, write a one-line description of the design (max 100 chars).${setsHint}
 
 ## Structural data from Figma
 
