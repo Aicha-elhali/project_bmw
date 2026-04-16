@@ -107,7 +107,7 @@ ${imports}
 // Auto-generated App.jsx — assembles all Figma-derived components
 const App = () => {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#1A1A1A', color: '#FFFFFF' }}>
 ${usages}
     </div>
   );

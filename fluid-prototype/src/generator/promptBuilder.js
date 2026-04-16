@@ -10,12 +10,15 @@
  */
 
 /**
- * Collect all unique component types from the tree.
+ * Collect top-level component names (direct children of root only).
+ * Sub-elements should be rendered inline within their parent, not as separate files.
  */
-function collectComponentNames(node, names = new Set()) {
-  names.add(toPascalCase(node.label));
-  for (const child of node.children ?? []) collectComponentNames(child, names);
-  return names;
+function collectTopLevelComponents(rootNode) {
+  const names = [];
+  for (const child of rootNode.children ?? []) {
+    names.push(toPascalCase(child.label));
+  }
+  return [...new Set(names)];
 }
 
 function toPascalCase(str) {
@@ -45,32 +48,34 @@ function trimTree(node, maxDepth = 5, depth = 0) {
 // ---------------------------------------------------------------------------
 
 const EXAMPLE_COMPONENT = `
-// Example of the expected output format:
+// Example: a StatusBar component with sub-elements rendered INLINE (not separate files):
 
 import React from 'react';
 
-const Card = ({ children, style: overrideStyle }) => {
-  // Uses "brand" token set — this is a brand-level container
-  const style = {
-    display: 'flex',
-    flexDirection: 'column',
-    backgroundColor: '#262626',       // brand → colors.background
-    borderRadius: '0.5rem',           // brand → borderRadius.md
-    boxShadow: '0 0.125rem 0.5rem 0 rgba(0,0,0,0.08)',
-    padding: '1.5rem',                // brand → spacing.lg
-    gap: '1rem',
-    boxSizing: 'border-box',
-    fontFamily: '"bmwTypeNextWeb", "Arial", "Helvetica", "Roboto", sans-serif',
-    fontWeight: '300',
-    color: '#FFFFFF',
-    overflow: 'hidden',
-    transition: '0.25s ease-in-out',
-    ...overrideStyle,
-  };
-  return <div style={style}>{children}</div>;
+const StatusBar = ({ style: overrideStyle }) => {
+  // Token set: "navi-dark" (colors, spacing)
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      width: '100%',
+      backgroundColor: '#262626',
+      padding: '0.5rem 1.5rem',
+      color: '#FFFFFF',
+      fontFamily: '"Inter", Arial, sans-serif',
+      ...overrideStyle,
+    }}>
+      {/* Sub-elements are inline — NOT separate component files */}
+      <span style={{ fontSize: '0.875rem', opacity: 0.7 }}>83%</span>
+      <span style={{ fontSize: '1rem' }}>11:05</span>
+      <span style={{ fontSize: '0.875rem', opacity: 0.7 }}>+21.0 °C</span>
+    </div>
+  );
 };
 
-export default Card;
+export default StatusBar;
 `.trim();
 
 // ---------------------------------------------------------------------------
@@ -106,12 +111,14 @@ function buildTokenSetsBlock(tokenSets) {
  */
 export function buildGenerationPrompt(componentTree, tokenSets, userPrompt = '') {
   const trimmedTree = trimTree(componentTree);
-  const componentNames = [...collectComponentNames(componentTree)];
+  const componentNames = collectTopLevelComponents(componentTree);
   const setNames = tokenSets.map(s => `"${s.name}"`).join(', ');
 
+  const baseContext = `This is an in-vehicle infotainment display. The UI should feel like a modern automotive dashboard screen — clean, dark-themed, glanceable at speed.`;
+
   const userBlock = userPrompt
-    ? `\n## Scene Description (from the user)\n\n${userPrompt}\n\nUse this to decide what content to show (text, numbers, states) and which token sets fit best.\n`
-    : '';
+    ? `\n## Scene Description\n\n${baseContext}\n\n**User intent:** ${userPrompt}\n\nUse this to decide what content to show (text, numbers, states) and which token sets fit best.\n`
+    : `\n## Scene Description\n\n${baseContext}\n`;
 
   return `
 You are a senior React engineer. Your task is to generate a complete React component library from a Figma wireframe.
@@ -152,12 +159,17 @@ ${JSON.stringify(trimmedTree, null, 2)}
 
 ## Your Task
 
-Generate one React \`.jsx\` file per top-level component. Expected:
+Generate one React \`.jsx\` file per **top-level section** of the UI. These are the direct children of the root frame:
 ${componentNames.map(n => `- ${n}.jsx`).join('\n')}
 
 Plus:
-- App.jsx (root component assembling everything)
+- App.jsx (root component assembling the top-level sections)
 - main.jsx (Vite entry point)
+
+**IMPORTANT — Component granularity:**
+- Only the top-level sections listed above should be separate \`.jsx\` files.
+- Sub-elements (icons, labels, values, shapes, glows) must be rendered INLINE as JSX within their parent component — do NOT create separate files for them.
+- Read the \`children\` array in the tree to understand nesting. A child node is part of its parent, not a standalone component.
 
 ## Rules
 
@@ -171,6 +183,14 @@ Plus:
 8. **Text content**: Render \`content\` from the tree, or use \`{children}\`.
 9. **No external libraries**: Only React.
 10. **Width**: Containers → \`width: '100%'\`. Leaf nodes → \`width: 'fit-content'\`.
+
+## Critical Visual Rules
+
+11. **Contrast**: NEVER render text or elements that are invisible against their background. If a background is dark → text MUST be light. If background is light → text MUST be dark. Check EVERY element: shapes, icons, and text. If the Figma tree specifies a color that would be invisible (e.g. white rectangle on white background), override it with a visible alternative from the token set.
+12. **Deduplication**: The Figma tree contains overlapping layers that represent the SAME visual element (e.g. the same number at different sizes stacked on top of each other, or a container that wraps a single child with identical content). Render each piece of content EXACTLY ONCE — pick the most prominent/meaningful layer and skip the rest.
+13. **Dark theme default**: Unless tokens explicitly define a light theme, use dark backgrounds (#1A1A1A or from tokens) with light text (#FFFFFF). Every container, section, and the root App must have an explicit dark backgroundColor set. Do NOT leave any element with a transparent or white background by default.
+14. **Skip decorative layers**: Figma layers named "glow", "shadow", "blur", "overlay", "mask", or "background" that are purely decorative effects should be translated to CSS properties (boxShadow, background gradients, opacity) on their parent — not rendered as standalone visible elements.
+15. **Sensible content**: Each text element should appear once with a clear purpose. If the tree has identical or near-identical content in sibling nodes, combine them into one element.
 
 ## Output Format
 
