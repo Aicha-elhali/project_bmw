@@ -3,6 +3,9 @@
  * ========================
  * Transforms a Figma frame into a runnable Vite + React app.
  *
+ * Loads ALL token sets from ../token-pipeline/sets/ and passes them
+ * to Claude, which decides per-component which tokens to apply.
+ *
  * Usage:
  *   node pipeline.js --frame 16:4 --file TL9xgNNemU88nwUbSjiHQR
  *
@@ -13,14 +16,13 @@
 
 import { resolve, dirname } from 'path';
 import { fileURLToPath }    from 'url';
+import { readFile, readdir } from 'fs/promises';
 
-import { getFigmaFrame }       from './src/figma/client.js';
-import { transformFrame }      from './src/transformer/index.js';
-import { applyDesignTokens }   from './src/design/tokenEngine.js';
+import { getFigmaFrame }         from './src/figma/client.js';
+import { transformFrame }        from './src/transformer/index.js';
 import { buildGenerationPrompt } from './src/generator/promptBuilder.js';
-import { generateComponents }  from './src/generator/claudeClient.js';
-import { writeOutput }         from './src/output/builder.js';
-import { loadTokens }          from './src/design/tokenEngine.js';
+import { generateComponents }    from './src/generator/claudeClient.js';
+import { writeOutput }           from './src/output/builder.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -62,6 +64,49 @@ function parseArgs(argv) {
 }
 
 // ---------------------------------------------------------------------------
+// Load token sets from ../token-pipeline/sets/
+// Falls back to local tokens/tokens.json if no sets directory exists.
+// ---------------------------------------------------------------------------
+
+async function loadTokenSets() {
+  const setsDir = resolve(__dirname, '..', 'token-pipeline', 'sets');
+  const sets = [];
+
+  try {
+    const files = await readdir(setsDir);
+    const jsonFiles = files.filter(f => f.endsWith('.json')).sort();
+
+    for (const file of jsonFiles) {
+      try {
+        const raw    = await readFile(resolve(setsDir, file), 'utf-8');
+        const tokens = JSON.parse(raw);
+        const name   = tokens._meta?.name ?? file.replace('.json', '');
+        sets.push({ name, tokens });
+      } catch (err) {
+        logWarn(`Skipping set "${file}": ${err.message}`);
+      }
+    }
+  } catch {
+    // sets directory doesn't exist — try local fallback
+  }
+
+  // Fallback: use tokens/tokens.json if no sets found
+  if (sets.length === 0) {
+    const fallback = resolve(__dirname, 'tokens', 'tokens.json');
+    try {
+      const raw    = await readFile(fallback, 'utf-8');
+      const tokens = JSON.parse(raw);
+      sets.push({ name: tokens._meta?.name ?? 'default', tokens });
+      logWarn(`No sets in ../token-pipeline/sets/ — using local tokens/tokens.json as fallback`);
+    } catch {
+      logWarn('No token sets found and no local tokens/tokens.json — Claude will use defaults');
+    }
+  }
+
+  return sets;
+}
+
+// ---------------------------------------------------------------------------
 // Pipeline
 // ---------------------------------------------------------------------------
 
@@ -71,9 +116,9 @@ async function run() {
   // Config
   const figmaToken    = process.env.FIGMA_TOKEN     ?? args.token ?? '';
   const anthropicKey  = process.env.ANTHROPIC_API_KEY ?? args.key ?? '';
-  const figmaFileKey  = args.file  ?? 'TL9xgNNemU88nwUbSjiHQR';
-  const figmaNodeId   = args.frame ?? '16:4';
-  const tokensPath    = resolve(__dirname, 'tokens', 'tokens.json');
+  const figmaFileKey  = args.file   ?? 'TL9xgNNemU88nwUbSjiHQR';
+  const figmaNodeId   = args.frame  ?? '16:4';
+  const userPrompt    = args.prompt ?? '';
   const outputDir     = resolve(__dirname, 'output');
 
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -81,6 +126,7 @@ async function run() {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
   log('CONFIG', `File: ${figmaFileKey}  Node: ${figmaNodeId}`);
   log('CONFIG', `Output: ${outputDir}`);
+  if (userPrompt) log('CONFIG', `Prompt: "${userPrompt}"`);
   console.log();
 
   // Validate required credentials
@@ -110,19 +156,16 @@ async function run() {
   const nodeCount = countNodes(componentTree);
   logSuccess(`Transformed ${nodeCount} nodes into component tree`);
 
-  // ── Phase 3: Design Tokens ──────────────────────────────────────────────
-  log('PHASE 3', 'Applying design tokens…');
-  const { tree: styledTree, warnings } = await applyDesignTokens(componentTree, tokensPath);
-  if (warnings.length) {
-    warnings.forEach(logWarn);
-  }
-  logSuccess(`Design tokens applied${warnings.length ? ` (${warnings.length} warnings)` : ''}`);
+  // ── Phase 3: Load Token Sets ────────────────────────────────────────────
+  log('PHASE 3', 'Loading token sets…');
+  const tokenSets = await loadTokenSets();
+  const setNames = tokenSets.map(s => s.name);
+  logSuccess(`Loaded ${tokenSets.length} token set${tokenSets.length !== 1 ? 's' : ''}: ${setNames.join(', ')}`);
 
   // ── Phase 4: Claude Code Generation ────────────────────────────────────
   log('PHASE 4', 'Building Claude prompt…');
-  const tokens = await loadTokens(tokensPath);
-  const prompt = buildGenerationPrompt(styledTree, tokens);
-  log('PHASE 4', `Prompt built`, `${prompt.length.toLocaleString()} chars`);
+  const prompt = buildGenerationPrompt(componentTree, tokenSets, userPrompt);
+  log('PHASE 4', `Prompt built`, `${prompt.length.toLocaleString()} chars, ${tokenSets.length} token sets`);
 
   log('PHASE 4', 'Sending to Claude API…');
   let generatedFiles;

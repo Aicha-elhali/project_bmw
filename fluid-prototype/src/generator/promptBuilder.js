@@ -2,7 +2,11 @@
  * Phase 4a — Prompt Builder
  *
  * Builds the structured prompt that we send to Claude.
- * The prompt contains: component tree (JSON), style map, conventions, and an example.
+ *
+ * Key capability: receives ALL available token sets and instructs Claude
+ * to choose the right set per component / area. Different parts of the
+ * page can use different token sets (e.g. navbar → brand tokens,
+ * map overlay → navigation-dark tokens, popup → alert tokens).
  */
 
 /**
@@ -25,7 +29,6 @@ function toPascalCase(str) {
 
 /**
  * Trim the component tree to a prompt-safe depth.
- * Very deep trees would exceed the context limit.
  */
 function trimTree(node, maxDepth = 5, depth = 0) {
   const trimmed = { ...node, children: [] };
@@ -38,32 +41,30 @@ function trimTree(node, maxDepth = 5, depth = 0) {
 }
 
 // ---------------------------------------------------------------------------
-// The example component Claude should follow as a template
+// Example component
 // ---------------------------------------------------------------------------
-const EXAMPLE_COMPONENT = `
-// Example of the expected output format (based on bmw.de production CSS):
 
-// Figma element: RECTANGLE "card" → React component: Card
-// BMW CSS class reference: similar to .cmp-container with shadow
+const EXAMPLE_COMPONENT = `
+// Example of the expected output format:
+
 import React from 'react';
 
 const Card = ({ children, style: overrideStyle }) => {
-  // Figma node: RECTANGLE "card" (id: 5:12)
-  // BMW production CSS: background #262626, border-radius 0.5rem, shadow-sm
+  // Uses "brand" token set — this is a brand-level container
   const style = {
     display: 'flex',
     flexDirection: 'column',
-    backgroundColor: '#262626',
-    borderRadius: '0.5rem',
-    boxShadow: '0 0.125rem 0.5rem 0 rgba(0,0,0,0.08), 0 0 0.0625rem 0 rgba(0,0,0,0.24)',
-    padding: '1.5rem',
+    backgroundColor: '#262626',       // brand → colors.background
+    borderRadius: '0.5rem',           // brand → borderRadius.md
+    boxShadow: '0 0.125rem 0.5rem 0 rgba(0,0,0,0.08)',
+    padding: '1.5rem',                // brand → spacing.lg
     gap: '1rem',
     boxSizing: 'border-box',
     fontFamily: '"bmwTypeNextWeb", "Arial", "Helvetica", "Roboto", sans-serif',
     fontWeight: '300',
     color: '#FFFFFF',
     overflow: 'hidden',
-    transition: 'box-shadow 0.25s ease-in-out',
+    transition: '0.25s ease-in-out',
     ...overrideStyle,
   };
   return <div style={style}>{children}</div>;
@@ -73,109 +74,109 @@ export default Card;
 `.trim();
 
 // ---------------------------------------------------------------------------
+// Build the token sets section of the prompt
+// ---------------------------------------------------------------------------
+
+function buildTokenSetsBlock(tokenSets) {
+  if (tokenSets.length === 0) return '(no token sets available — use sensible defaults)\n';
+
+  return tokenSets.map(set => {
+    const meta = set.tokens._meta ?? {};
+    const desc = meta.description ?? '';
+    const theme = meta.theme ?? '';
+    const heading = `### Set: "${set.name}"${desc ? ` — ${desc}` : ''}${theme ? ` [${theme} theme]` : ''}`;
+
+    // Remove _meta from the tokens we send to keep it clean
+    const { _meta, ...tokenValues } = set.tokens;
+    return `${heading}\n\n\`\`\`json\n${JSON.stringify(tokenValues, null, 2)}\n\`\`\``;
+  }).join('\n\n');
+}
+
+// ---------------------------------------------------------------------------
 // Main prompt builder
 // ---------------------------------------------------------------------------
 
 /**
  * Build a structured prompt for Claude to generate React components.
- * @param {object} componentTree — Phase 3 output (tree with .style applied)
- * @param {object} tokens        — raw tokens object (for inline reference)
+ *
+ * @param {object}   componentTree — Phase 2 output (tree with layout info)
+ * @param {Array}    tokenSets     — Array of { name, tokens } from sets/
+ * @param {string}   userPrompt    — User description of what the UI should show
  * @returns {string} Full prompt text
  */
-export function buildGenerationPrompt(componentTree, tokens) {
+export function buildGenerationPrompt(componentTree, tokenSets, userPrompt = '') {
   const trimmedTree = trimTree(componentTree);
   const componentNames = [...collectComponentNames(componentTree)];
+  const setNames = tokenSets.map(s => `"${s.name}"`).join(', ');
+
+  const userBlock = userPrompt
+    ? `\n## Scene Description (from the user)\n\n${userPrompt}\n\nUse this to decide what content to show (text, numbers, states) and which token sets fit best.\n`
+    : '';
 
   return `
-You are a senior React engineer working on a BMW digital product. Your task is to generate a complete, working React component library from a Figma wireframe following the BMW Design Language as used on bmw.de.
+You are a senior React engineer. Your task is to generate a complete React component library from a Figma wireframe.
+${userBlock}
+## Available Token Sets
 
-## BMW Design System (scraped from bmw.de production CSS)
+You have ${tokenSets.length} design token set${tokenSets.length !== 1 ? 's' : ''} available: ${setNames}.
+Each set represents a different UI context (brand, screen type, feature, etc.).
 
-### Colors
-- **Background**: #262626 (NOT pure black — this is critical for the BMW look)
-- **Text on dark**: #FFFFFF (primary), rgba(255,255,255,0.84) (secondary), rgba(255,255,255,0.75) (muted)
-- **BMW Blue**: #1C69D4 (interactive), #0653B6 (hover), #BBD2F3 (light accent), #DDE8F9 (subtle bg)
-- **Light surfaces**: #F2F2F2, #F6F6F6
-- **Borders**: #E6E6E6 (light), #4D4D4D (dark), never heavy outlines
-- **Shadows**: rgba(0,0,0,0.08) light, rgba(0,0,0,0.16) medium
-- **Focus ring**: 0 0 0 0.0625rem #FFFFFF, 0 0 0 0.3125rem #1C69D4
+**You MUST choose the most appropriate token set for each component / area.**
+Different parts of the page can — and should — use different sets when they represent different contexts.
 
-### Typography
-- **Font**: "bmwTypeNextWeb", "Arial", "Helvetica", "Roboto", sans-serif
-- **Default weight**: 300 (light) — this is THE BMW signature, even for headings
-- **Input weight**: 400
-- **Clickable/Link weight**: 500
-- **Price weight**: 700
-- **Headline 1**: 2.0625rem / line-height 2.875rem
-- **Headline 2**: 1.75rem / line-height 2.5rem
-- **Body**: 1rem / line-height 1.625rem
-- **Label**: 0.75rem / weight 500 / line-height 1rem
+${buildTokenSetsBlock(tokenSets)}
 
-### Spacing & Layout
-- **Border-radius**: 3px (buttons, default), 0.5rem (cards), 0.625rem (large), 50% (circles)
-- **Shadows**: \`0 0.125rem 0.5rem 0 rgba(0,0,0,0.08), 0 0 0.0625rem 0 rgba(0,0,0,0.24)\` (card)
-- **Transitions**: 0.25s ease-in-out (standard), 0.314s ease-in-out (background-color)
-- **Touch targets**: 3rem minimum height
-- **Breakpoints**: 768px / 1024px / 1280px / 1920px
+## Token Selection Rules
 
-### Component Reference (from .cmp-* classes)
-- Buttons: .cmp-button — 3px radius, weight 500, min-height 3rem
-- Containers: .cmp-container — flex layout, optional fixed margins
-- Navigation: .cmp-globalnavigation — dark bg, no border-bottom
-- Inputs: underline style (border-bottom only, no full border)
+1. **Read the set descriptions** — they tell you what each set is for.
+2. **Match by context**: a navigation overlay → use navigation tokens. A brand header → brand tokens. A popup or alert → use whichever set fits that UI pattern.
+3. **Mix freely**: one component can use "brand" colors while its child uses "navi-dark" spacing. Pick the best fit per property when sets overlap.
+4. **Add a comment** at the top of each component saying which set(s) it uses:
+   \`// Token set: "brand" (colors, typography) + "navi-dark" (spacing)\`
+5. **Fallback**: if no set clearly matches, pick the one whose theme/mood is closest.
 
 ## Input: Component Tree (from Figma)
 
-The following JSON represents a Figma wireframe that has been parsed and enriched with design tokens.
 Each node has:
-- \`type\`: the component category (button, card, container, text, etc.)
-- \`label\`: the original Figma layer name
-- \`layout\`: width/height/direction for Flexbox layout
-- \`style\`: pre-computed React inline style object (use these values directly)
+- \`type\`: component category (button, card, container, text, etc.)
+- \`label\`: original Figma layer name
+- \`layout\`: width/height/direction for Flexbox
 - \`content\`: text content (for TEXT nodes)
 - \`children\`: nested components
+- \`raw\`: original Figma visual properties (fills, strokes, radius)
 - \`meta.figmaType\`: original Figma node type
-- \`meta.originalName\`: original Figma layer name
 
 \`\`\`json
 ${JSON.stringify(trimmedTree, null, 2)}
 \`\`\`
 
-## Design Tokens (reference)
-
-\`\`\`json
-${JSON.stringify(tokens, null, 2)}
-\`\`\`
-
 ## Your Task
 
-Generate one React \`.jsx\` file per top-level component. The expected components are:
+Generate one React \`.jsx\` file per top-level component. Expected:
 ${componentNames.map(n => `- ${n}.jsx`).join('\n')}
 
-Plus these infrastructure files:
-- App.jsx (root component that assembles all components)
+Plus:
+- App.jsx (root component assembling everything)
 - main.jsx (Vite entry point)
 
 ## Rules
 
-1. **File format**: Each file starts with a comment: \`// Figma: [figmaType] "[originalName]"\`
-2. **Inline styles only**: Use the \`style\` objects from the JSON. No CSS files, no CSS-in-JS libraries, no className.
-3. **Flexbox layout**: Interpret Figma coordinates as Flexbox — use \`flexDirection\`, \`gap\`, \`padding\`. Do NOT use \`position: absolute\`.
-4. **Props**: Each component accepts a \`children\` prop and a \`style\` prop for overrides (spread at the end of the style object).
-5. **ES Modules**: Use \`import/export\`, not CommonJS.
-6. **Functional components only**: No class components.
-7. **Text content**: If a node has \`content\`, render it as the default text. Otherwise use a placeholder like \`{children}\`.
-8. **Nesting**: If a component has children in the tree, render them using \`{children}\`.
-9. **No external libraries**: Only React. No framer-motion, no styled-components, no MUI.
-10. **Width**: Container components should be \`width: '100%'\`. Leaf components (buttons, badges) can be \`width: 'fit-content'\`.
+1. **File format**: Each file starts with \`// FILE: ComponentName.jsx\`
+2. **Token set comment**: Second line: \`// Token set: "set-name"\`
+3. **Inline styles only**: Use token values as inline React style objects. No CSS files, no className.
+4. **Flexbox layout**: Use flexDirection, gap, padding. No position: absolute.
+5. **Props**: Each component accepts \`children\` and \`style\` props (spread at end).
+6. **ES Modules**: import/export, not CommonJS.
+7. **Functional components only**.
+8. **Text content**: Render \`content\` from the tree, or use \`{children}\`.
+9. **No external libraries**: Only React.
+10. **Width**: Containers → \`width: '100%'\`. Leaf nodes → \`width: 'fit-content'\`.
 
 ## Output Format
 
-Return your response as a series of fenced code blocks. Each block must start with a filename comment:
-
 \`\`\`jsx
 // FILE: ComponentName.jsx
-// Figma: RECTANGLE "card"
+// Token set: "brand" (colors) + "navi-dark" (spacing, shadows)
 
 import React from 'react';
 // ... component code
@@ -185,6 +186,6 @@ import React from 'react';
 
 ${EXAMPLE_COMPONENT}
 
-Now generate all the components. Start with the smallest leaf components (buttons, text, badges) and work up to containers and App.jsx last.
+Now generate all components. Start with leaf components, work up to containers, then App.jsx last.
 `.trim();
 }
