@@ -54,6 +54,7 @@ Your task: combine what you SEE in the image with the precise VALUES from the da
 - Color relationships: which color is the background vs. an accent vs. decorative?
 - Gradients: are they decorative glows, background effects, or functional overlays?
 - Layout patterns: dense dashboard vs. spacious content page?
+- **Card/panel shapes**: are cards rectangular, rounded, or SKEWED/TRAPEZOID? If cards have angled edges (parallelogram-like), note this — it requires CSS \`transform: skewX()\` or \`clip-path: polygon()\`, NOT a rounded rectangle.
 
 ## What the data tells you that the image alone cannot
 
@@ -182,6 +183,11 @@ Return a single JSON code block with exactly this structure. Fill EVERY field.
 4. **Border radius** — Small values (1–4px) → sm. Medium (6–12px) → md. Large (16+) → lg/xl. 9999px → full.
 
 5. **Shadows** — Convert to CSS box-shadow. If no shadows found, provide sensible defaults.
+
+6. **Shape geometry** — Look carefully at card and panel shapes in the image.
+   - If cards have angled/slanted edges (trapezoid, parallelogram), add \`"cardSkewAngle": "-8deg"\` (or the approximate angle you see) to the output under a new \`"shapes"\` key.
+   - If cards are standard rectangles, omit the shapes key.
+   - NEVER normalise a skewed shape to a rectangle — the exact geometry matters for pixel-perfect replication.
 
 6. **Transitions & breakpoints** — Figma doesn't store these. Use standard values (0.2s–0.5s ease, 768/1024/1280/1920px).
 
