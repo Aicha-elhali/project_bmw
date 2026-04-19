@@ -1,30 +1,26 @@
-// Figma: FRAME "16:4"
-
+// Figma: container "16:4"
 import React from 'react';
-import Navbar from './Navbar.jsx';
+import Navigation from './Navigation.jsx';
 
-const Frame164 = ({ children, style: overrideStyle }) => {
+const Component164 = ({ style: overrideStyle }) => {
   const style = {
     boxSizing: 'border-box',
-    fontFamily: '"bmwTypeNextWeb", "Arial", "Helvetica", "Roboto", sans-serif',
+    fontFamily: '"bmwTypeNextWeb", "Arial", "Helvetica", sans-serif',
     fontWeight: '300',
     display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-    padding: '16px',
-    backgroundColor: '#F6F6F6',
+    flexDirection: 'row',
     width: '100%',
-    minHeight: '100vh',
-    color: '#262626',
+    height: '100%',
+    backgroundColor: '#0D0D0D',
+    overflow: 'hidden',
     ...overrideStyle,
   };
 
   return (
     <div style={style}>
-      <Navbar />
-      {children}
+      <Navigation />
     </div>
   );
 };
 
-export default Frame164;
+export default Component164;

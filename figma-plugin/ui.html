@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<style>
+  :root {
+    --bg:       #ffffff;
+    --bg-alt:   #f5f5f5;
+    --border:   #e0e0e0;
+    --text:     #1e1e1e;
+    --text-sec: #6e6e6e;
+    --accent:   #0d99ff;
+    --accent-h: #0b85e0;
+    --success:  #14ae5c;
+    --error:    #f24822;
+    --radius:   8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 12px;
+    color: var(--text);
+    background: var(--bg);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    height: 100vh;
+  }
+
+  h2 { font-size: 14px; font-weight: 600; }
+  label { font-size: 11px; font-weight: 500; color: var(--text-sec); display: block; margin-bottom: 4px; }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-family: 'SF Mono', Monaco, monospace;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input[type="text"]:focus { border-color: var(--accent); }
+
+  button {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, opacity 0.15s;
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-h); }
+
+  .btn-open { background: var(--success); color: #fff; }
+  .btn-open:hover { filter: brightness(1.1); }
+
+  .frame-info {
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    font-size: 11px;
+    color: var(--text-sec);
+    display: none;
+  }
+  .frame-info strong { color: var(--text); font-weight: 600; }
+
+  .progress {
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .phase {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-sec);
+    padding: 6px 0;
+  }
+  .phase .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .phase.active .dot { background: var(--accent); animation: pulse 1s infinite; }
+  .phase.done   .dot { background: var(--success); }
+  .phase.error  .dot { background: var(--error); }
+  .phase.active { color: var(--text); font-weight: 500; }
+  .phase.done   { color: var(--success); }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%      { transform: scale(1.4); opacity: 0.6; }
+  }
+
+  .result { display: none; flex-direction: column; gap: 10px; }
+
+  .error-box {
+    display: none;
+    background: #fff5f5;
+    border: 1px solid var(--error);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    font-size: 11px;
+    color: var(--error);
+    word-break: break-word;
+  }
+
+  .footer {
+    font-size: 10px;
+    color: var(--text-sec);
+    text-align: center;
+    opacity: 0.6;
+    margin-top: auto;
+  }
+</style>
+</head>
+<body>
+
+<h2>Fluid Prototype</h2>
+
+<div>
+  <label>Server URL</label>
+  <input type="text" id="serverUrl" value="http://localhost:3001/api/generate" />
+</div>
+
+<div class="frame-info" id="frameInfo">
+  Selected: <strong id="frameName">—</strong>
+  <span id="frameSize"></span>
+</div>
+
+<button class="btn-primary" id="generateBtn" onclick="startGeneration()">
+  Generate Prototype
+</button>
+
+<div class="progress" id="progress"></div>
+
+<div class="error-box" id="errorBox"></div>
+
+<div class="result" id="result">
+  <button class="btn-open" onclick="openPreview()">Open Preview in Browser</button>
+</div>
+
+<div class="footer">
+  Generic Figma frame exporter &mdash; works with any pipeline server
+</div>
+
+<script>
+  var previewUrl = '';
+  var currentFrameData = null;
+
+  // Figma plugin UIs run in data: URLs — no localStorage available
+  function saveUrl(url) {
+    try { localStorage.setItem('fluid-proto-url', url); } catch (e) {}
+  }
+  function loadUrl() {
+    try { return localStorage.getItem('fluid-proto-url'); } catch (e) { return null; }
+  }
+
+  var saved = loadUrl();
+  if (saved) document.getElementById('serverUrl').value = saved;
+
+  // ── Messages from plugin sandbox ─────────────────────────────────────────
+
+  onmessage = (event) => {
+    const msg = event.data.pluginMessage;
+    if (!msg) return;
+
+    console.log('[Plugin UI] Message from sandbox:', msg.type);
+
+    if (msg.type === 'frame-data') {
+      console.log('[Plugin UI] Frame received:', msg.meta.name, '— sending to server...');
+      currentFrameData = msg.data;
+      const info = document.getElementById('frameInfo');
+      info.style.display = 'block';
+      document.getElementById('frameName').textContent = msg.meta.name;
+      document.getElementById('frameSize').textContent =
+        ` (${Math.round(msg.meta.width)} x ${Math.round(msg.meta.height)})`;
+      sendToServer(msg.data);
+    }
+
+    if (msg.type === 'error') {
+      console.log('[Plugin UI] Error from sandbox:', msg.message);
+      showError(msg.message);
+      setGenerating(false);
+    }
+  };
+
+  // ── UI state helpers ─────────────────────────────────────────────────────
+
+  function setGenerating(active) {
+    document.getElementById('generateBtn').disabled = active;
+    document.getElementById('generateBtn').textContent = active
+      ? 'Generating...'
+      : 'Generate Prototype';
+  }
+
+  function showError(message) {
+    const box = document.getElementById('errorBox');
+    box.textContent = message;
+    box.style.display = 'block';
+  }
+
+  function clearState() {
+    document.getElementById('errorBox').style.display = 'none';
+    document.getElementById('result').style.display = 'none';
+    document.getElementById('progress').style.display = 'flex';
+    document.getElementById('progress').innerHTML = '';
+    previewUrl = '';
+  }
+
+  function addPhase(id, label) {
+    const el = document.createElement('div');
+    el.className = 'phase active';
+    el.id = 'phase-' + id;
+    el.innerHTML = '<div class="dot"></div><span>' + label + '</span>';
+
+    // Mark previous phases as done
+    const phases = document.querySelectorAll('.phase.active');
+    phases.forEach(p => { if (p.id !== el.id) p.className = 'phase done'; });
+
+    document.getElementById('progress').appendChild(el);
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function markPhaseDone(id) {
+    const el = document.getElementById('phase-' + id);
+    if (el) el.className = 'phase done';
+  }
+
+  function markPhaseError(id) {
+    const el = document.getElementById('phase-' + id);
+    if (el) el.className = 'phase error';
+  }
+
+  // ── Generation flow ──────────────────────────────────────────────────────
+
+  function startGeneration() {
+    clearState();
+    setGenerating(true);
+
+    var url = document.getElementById('serverUrl').value.trim();
+    saveUrl(url);
+
+    console.log('[Plugin UI] Requesting frame serialization...');
+    // Ask sandbox to serialize the selected frame
+    parent.postMessage({ pluginMessage: { type: 'serialize-selection' } }, '*');
+  }
+
+  async function sendToServer(frameData) {
+    const url = document.getElementById('serverUrl').value.trim();
+
+    try {
+      console.log('[Plugin UI] POST to:', url);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(frameData),
+      });
+      console.log('[Plugin UI] Response status:', response.status);
+
+      if (!response.ok) {
+        throw new Error('Server responded with ' + response.status);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop(); // keep incomplete line in buffer
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const event = JSON.parse(line);
+            handleServerEvent(event);
+          } catch (e) {}
+        }
+      }
+
+      // Process remaining buffer
+      if (buffer.trim()) {
+        try { handleServerEvent(JSON.parse(buffer)); } catch (e) {}
+      }
+
+    } catch (err) {
+      showError('Connection failed: ' + err.message + '\n\nIs the server running?');
+      setGenerating(false);
+    }
+  }
+
+  function handleServerEvent(event) {
+    if (event.status === 'progress') {
+      addPhase(event.phase, event.message);
+    }
+
+    if (event.status === 'done') {
+      // Mark all remaining phases as done
+      document.querySelectorAll('.phase.active').forEach(p => p.className = 'phase done');
+
+      previewUrl = event.previewUrl;
+      document.getElementById('result').style.display = 'flex';
+      setGenerating(false);
+
+      parent.postMessage({
+        pluginMessage: { type: 'notify', message: 'Prototype ready!', timeout: 5000 }
+      }, '*');
+    }
+
+    if (event.status === 'error') {
+      const active = document.querySelector('.phase.active');
+      if (active) active.className = 'phase error';
+      showError(event.message);
+      setGenerating(false);
+    }
+  }
+
+  function openPreview() {
+    if (previewUrl) {
+      parent.postMessage({ pluginMessage: { type: 'open-url', url: previewUrl } }, '*');
+    }
+  }
+</script>
+</body>
+</html>

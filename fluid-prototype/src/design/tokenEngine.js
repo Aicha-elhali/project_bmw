@@ -1,18 +1,16 @@
 /**
- * Phase 3 — Design Token Engine (BMW Brand — scraped from bmw.de)
+ * Phase 3 — Design Token Engine (BMW iDrive Navigation)
  *
- * Real BMW design language based on production CSS:
- * - Font: bmwTypeNextWeb, weight 300 (light) as default
- * - Colors: #262626 background (not pure black), #1C69D4 BMW Blue
- * - Shadows: subtle rgba-based, 0.125rem blur for cards
- * - Border-radius: 3px default, 0.5rem for cards
- * - Transitions: 0.25s ease-in-out standard, 0.314s for backgrounds
- * - Touch targets: 3rem minimum height
- * - BEM naming: cmp-{component}__{element}--{modifier}
+ * Maps navigation-specific component types to BMW iDrive design tokens.
+ * Optimized for automotive center console displays:
+ * - Dark theme (OLED-friendly, reduces glare)
+ * - Large touch targets (driving safety)
+ * - High contrast (readability in varying light)
+ * - bmwTypeNextWeb font, weight 300 (light) signature
  */
 
 import { readFile } from 'fs/promises';
-import { resolve } from 'path';
+import { resolve }  from 'path';
 
 // ---------------------------------------------------------------------------
 // Token loader
@@ -28,23 +26,288 @@ export async function loadTokens(tokensPath) {
 }
 
 // ---------------------------------------------------------------------------
-// Component type → BMW production token mapping
-// Derived from bmw.de CSS classes: .cmp-button, .cmp-container, etc.
+// Component type → BMW iDrive navigation token mapping
 // ---------------------------------------------------------------------------
 
 function buildStyleForType(type, tokens, node) {
   const { colors, spacing, typography, fontWeights, borderRadius, shadows, transitions } = tokens;
-  const raw = node.raw ?? {};
 
-  // BMW base: bmwTypeNextWeb, weight 300 (light)
   const base = {
-    boxSizing: 'border-box',
+    boxSizing:  'border-box',
     fontFamily: typography.body.family,
-    fontWeight: fontWeights.default,
+    fontWeight: fontWeights.light,
   };
 
   switch (type) {
-    // ── .cmp-button / .style-button--primary ──────────────────────────────
+    // ── Full screen container ─────────────────────────────────────────────
+    case 'screen':
+      return {
+        ...base,
+        display:         'flex',
+        flexDirection:   'column',
+        width:           '100%',
+        height:          '100vh',
+        backgroundColor: colors.background,
+        color:           colors.text,
+        overflow:        'hidden',
+        position:        'relative',
+      };
+
+    // ── Status bar (top: time, signal, temp) ──────────────────────────────
+    case 'statusBar':
+      return {
+        ...base,
+        display:         'flex',
+        flexDirection:   'row',
+        alignItems:      'center',
+        justifyContent:  'space-between',
+        backgroundColor: colors.background,
+        color:           colors.textSecondary,
+        padding:         `0 ${spacing.lg}`,
+        width:           '100%',
+        height:          spacing.statusBarHeight,
+        minHeight:       spacing.statusBarHeight,
+        fontSize:        typography.caption.size,
+        fontWeight:      fontWeights.regular,
+        borderBottom:    `1px solid ${colors.divider}`,
+        flexShrink:      '0',
+        zIndex:          '100',
+      };
+
+    // ── Map area ──────────────────────────────────────────────────────────
+    case 'map':
+      return {
+        ...base,
+        flex:            '1',
+        position:        'relative',
+        backgroundColor: colors.mapDark,
+        overflow:        'hidden',
+        display:         'flex',
+        alignItems:      'center',
+        justifyContent:  'center',
+        color:           colors.textMuted,
+        fontSize:        typography.heading2.size,
+      };
+
+    // ── Route info panel ──────────────────────────────────────────────────
+    case 'routeInfo':
+      return {
+        ...base,
+        display:         'flex',
+        flexDirection:   'column',
+        gap:             spacing.md,
+        backgroundColor: colors.backgroundElevated,
+        borderRadius:    borderRadius.lg,
+        padding:         spacing.lg,
+        boxShadow:       shadows.lg,
+        color:           colors.text,
+        width:           spacing.panelWidth,
+        maxHeight:       '80%',
+        overflow:        'auto',
+      };
+
+    // ── Turn-by-turn indicator ────────────────────────────────────────────
+    case 'turnIndicator':
+      return {
+        ...base,
+        display:         'flex',
+        flexDirection:   'row',
+        alignItems:      'center',
+        gap:             spacing.md,
+        backgroundColor: colors.backgroundElevated,
+        borderRadius:    borderRadius.lg,
+        padding:         `${spacing.md} ${spacing.lg}`,
+        boxShadow:       shadows.md,
+        color:           colors.text,
+      };
+
+    // ── Search bar ────────────────────────────────────────────────────────
+    case 'searchBar':
+      return {
+        ...base,
+        display:         'flex',
+        flexDirection:   'row',
+        alignItems:      'center',
+        gap:             spacing.sm,
+        backgroundColor: colors.backgroundOverlay,
+        color:           colors.text,
+        padding:         `${spacing.sm} ${spacing.lg}`,
+        borderRadius:    borderRadius.xl,
+        border:          `1px solid ${colors.border}`,
+        fontSize:        typography.body.size,
+        fontWeight:      fontWeights.regular,
+        minHeight:       spacing.touchTargetMin,
+        width:           '100%',
+        transition:      `border-color ${transitions.fast}`,
+      };
+
+    // ── Bottom dock / navigation bar ──────────────────────────────────────
+    case 'dock':
+      return {
+        ...base,
+        display:         'flex',
+        flexDirection:   'row',
+        alignItems:      'center',
+        justifyContent:  'center',
+        gap:             spacing.xl,
+        backgroundColor: colors.background,
+        borderTop:       `1px solid ${colors.divider}`,
+        padding:         `${spacing.sm} ${spacing.xxl}`,
+        width:           '100%',
+        height:          spacing.dockHeight,
+        minHeight:       spacing.dockHeight,
+        flexShrink:      '0',
+        zIndex:          '100',
+      };
+
+    // ── Dock item (icon + label) ──────────────────────────────────────────
+    case 'dockItem':
+      return {
+        ...base,
+        display:         'flex',
+        flexDirection:   'column',
+        alignItems:      'center',
+        justifyContent:  'center',
+        gap:             spacing.xs,
+        color:           colors.textMuted,
+        cursor:          'pointer',
+        padding:         spacing.xs,
+        minWidth:        spacing.touchTarget,
+        minHeight:       spacing.touchTarget,
+        borderRadius:    borderRadius.md,
+        fontSize:        typography.caption.size,
+        fontWeight:      fontWeights.medium,
+        transition:      `color ${transitions.fast}, background-color ${transitions.fast}`,
+      };
+
+    // ── Side panel ────────────────────────────────────────────────────────
+    case 'sidePanel':
+      return {
+        ...base,
+        display:         'flex',
+        flexDirection:   'column',
+        gap:             spacing.sm,
+        backgroundColor: colors.backgroundElevated,
+        borderLeft:      `1px solid ${colors.divider}`,
+        padding:         spacing.lg,
+        width:           spacing.panelWidth,
+        height:          '100%',
+        color:           colors.text,
+        overflowY:       'auto',
+      };
+
+    // ── Media player widget ───────────────────────────────────────────────
+    case 'mediaPlayer':
+      return {
+        ...base,
+        display:         'flex',
+        flexDirection:   'row',
+        alignItems:      'center',
+        gap:             spacing.md,
+        backgroundColor: colors.backgroundElevated,
+        borderRadius:    borderRadius.lg,
+        padding:         spacing.md,
+        boxShadow:       shadows.md,
+        color:           colors.text,
+        minHeight:       spacing.touchTarget,
+      };
+
+    // ── Climate control ───────────────────────────────────────────────────
+    case 'climateControl':
+      return {
+        ...base,
+        display:         'flex',
+        flexDirection:   'row',
+        alignItems:      'center',
+        justifyContent:  'space-between',
+        gap:             spacing.lg,
+        backgroundColor: colors.backgroundElevated,
+        borderRadius:    borderRadius.lg,
+        padding:         `${spacing.md} ${spacing.lg}`,
+        color:           colors.text,
+      };
+
+    // ── Quick action button (floating on map) ─────────────────────────────
+    case 'quickAction':
+      return {
+        ...base,
+        display:         'flex',
+        alignItems:      'center',
+        justifyContent:  'center',
+        width:           spacing.touchTarget,
+        height:          spacing.touchTarget,
+        backgroundColor: colors.backgroundOverlay,
+        borderRadius:    borderRadius.full,
+        boxShadow:       shadows.md,
+        color:           colors.text,
+        cursor:          'pointer',
+        border:          `1px solid ${colors.border}`,
+        transition:      `background-color ${transitions.fast}`,
+      };
+
+    // ── POI list ──────────────────────────────────────────────────────────
+    case 'poiList':
+      return {
+        ...base,
+        display:         'flex',
+        flexDirection:   'column',
+        gap:             '1px',
+        width:           '100%',
+        color:           colors.text,
+        backgroundColor: colors.divider,
+        borderRadius:    borderRadius.md,
+        overflow:        'hidden',
+      };
+
+    // ── POI item ──────────────────────────────────────────────────────────
+    case 'poiItem':
+      return {
+        ...base,
+        display:         'flex',
+        flexDirection:   'row',
+        alignItems:      'center',
+        gap:             spacing.md,
+        backgroundColor: colors.backgroundElevated,
+        padding:         `${spacing.md} ${spacing.lg}`,
+        minHeight:       spacing.touchTarget,
+        color:           colors.text,
+        cursor:          'pointer',
+        transition:      `background-color ${transitions.fast}`,
+      };
+
+    // ── Speed limit indicator ─────────────────────────────────────────────
+    case 'speedLimit':
+      return {
+        ...base,
+        display:         'flex',
+        alignItems:      'center',
+        justifyContent:  'center',
+        width:           '3.5rem',
+        height:          '3.5rem',
+        borderRadius:    borderRadius.full,
+        border:          `3px solid ${colors.error}`,
+        backgroundColor: colors.text,
+        color:           colors.background,
+        fontSize:        typography.heading2.size,
+        fontWeight:      fontWeights.bold,
+      };
+
+    // ── Vehicle info widget ───────────────────────────────────────────────
+    case 'vehicleInfo':
+      return {
+        ...base,
+        display:         'flex',
+        flexDirection:   'row',
+        alignItems:      'center',
+        gap:             spacing.lg,
+        backgroundColor: colors.backgroundElevated,
+        borderRadius:    borderRadius.lg,
+        padding:         `${spacing.md} ${spacing.lg}`,
+        color:           colors.text,
+        fontSize:        typography.bodySmall.size,
+      };
+
+    // ── Button ────────────────────────────────────────────────────────────
     case 'button':
       return {
         ...base,
@@ -55,206 +318,53 @@ function buildStyleForType(type, tokens, node) {
         backgroundColor: colors.primary,
         color:           '#FFFFFF',
         padding:         `${spacing.sm} ${spacing.xl}`,
-        borderRadius:    borderRadius.sm,             // BMW: 3px
+        borderRadius:    borderRadius.md,
         border:          'none',
         cursor:          'pointer',
-        fontSize:        typography.body.size,         // BMW: 1rem
-        fontWeight:      fontWeights.clickable,        // BMW: 500
-        fontFamily:      typography.body.family,
-        minHeight:       spacing.touchTarget,           // BMW: 3rem
-        transition:      `color ${transitions.fast}, background-color ${transitions.fast}, box-shadow ${transitions.fast}`,
+        fontSize:        typography.body.size,
+        fontWeight:      fontWeights.medium,
+        minHeight:       spacing.touchTargetMin,
+        transition:      `background-color ${transitions.fast}`,
         whiteSpace:      'nowrap',
       };
 
-    // ── .cmp-dropdown__input / form inputs ────────────────────────────────
-    case 'input':
-      return {
-        ...base,
-        display:         'block',
-        width:           '100%',
-        backgroundColor: 'transparent',
-        color:           colors.text,
-        padding:         `${spacing.md} ${spacing.lg}`,
-        borderRadius:    borderRadius.sm,
-        border:          'none',
-        borderBottom:    `1px solid ${colors.borderDark}`,  // BMW: underline inputs
-        fontSize:        typography.body.size,
-        fontWeight:      fontWeights.input,             // BMW: 400
-        fontFamily:      typography.body.family,
-        minHeight:       spacing.touchTarget,
-        outline:         'none',
-        caretColor:      colors.primary,
-        transition:      `border-color ${transitions.fast}`,
-      };
-
-    // ── Card pattern (teaser/tile) ────────────────────────────────────────
-    case 'card':
-      return {
-        ...base,
-        display:         'flex',
-        flexDirection:   node.layout?.direction === 'row' ? 'row' : 'column',
-        backgroundColor: colors.background,
-        borderRadius:    borderRadius.md,              // BMW: 0.5rem (8px)
-        boxShadow:       shadows.sm,
-        padding:         spacing.lg,
-        gap:             spacing.md,
-        overflow:        'hidden',
-        transition:      `box-shadow ${transitions.fast}`,
-      };
-
-    // ── .cmp-globalnavigation__container ───────────────────────────────────
-    case 'navbar':
-      return {
-        ...base,
-        display:         'flex',
-        flexDirection:   'row',
-        alignItems:      'center',
-        justifyContent:  'space-between',
-        backgroundColor: colors.background,
-        borderBottom:    'none',                        // BMW: no visible border on nav
-        padding:         `${spacing.md} ${spacing.xl}`,
-        width:           '100%',
-        minHeight:       '3.5rem',
-        color:           colors.text,
-      };
-
-    // ── Footer ────────────────────────────────────────────────────────────
-    case 'footer':
-      return {
-        ...base,
-        display:         'flex',
-        flexDirection:   'column',
-        alignItems:      'flex-start',
-        gap:             spacing.lg,
-        backgroundColor: colors.background,
-        borderTop:       `1px solid ${colors.borderDark}`,
-        padding:         `${spacing.xxl} ${spacing.xl}`,
-        width:           '100%',
-        marginTop:       'auto',
-        color:           colors.textOnDarkMuted,
-        fontSize:        typography.small.size,
-      };
-
-    // ── Sidebar / aside ───────────────────────────────────────────────────
-    case 'sidebar':
-      return {
-        ...base,
-        display:         'flex',
-        flexDirection:   'column',
-        backgroundColor: colors.background,
-        borderRight:     `1px solid ${colors.borderDark}`,
-        padding:         `${spacing.xl} ${spacing.lg}`,
-        gap:             spacing.sm,
-        minWidth:        '280px',
-        color:           colors.text,
-      };
-
-    // ── Modal / dialog / overlay ──────────────────────────────────────────
-    case 'modal':
-      return {
-        ...base,
-        display:         'flex',
-        flexDirection:   'column',
-        backgroundColor: colors.background,
-        borderRadius:    borderRadius.lg,
-        boxShadow:       shadows.md,
-        padding:         spacing.xl,
-        gap:             spacing.lg,
-        maxWidth:        '600px',
-        width:           '90%',
-        color:           colors.text,
-      };
-
-    // ── .cmp-container / .style-container ─────────────────────────────────
-    case 'container':
-    case 'section':
-    case 'form':
-      return {
-        ...base,
-        display:         'flex',
-        flexDirection:   node.layout?.direction === 'row' ? 'row' : 'column',
-        gap:             node.layout?.gap ? `${node.layout.gap}px` : spacing.lg,
-        padding:         buildPadding(node.layout?.padding, spacing),
-        backgroundColor: raw.backgroundColor ?? 'transparent',
-        borderRadius:    raw.borderRadius ? `${raw.borderRadius}px` : undefined,
-        width:           '100%',
-        color:           colors.text,
-      };
-
-    // ── Headings (--headline-1) ───────────────────────────────────────────
-    case 'heading':
-      return {
-        ...base,
-        fontSize:       typography.heading.size,
-        fontWeight:     fontWeights.default,            // BMW: 300 for ALL headings
-        fontFamily:     typography.heading.family,
-        lineHeight:     typography.heading.lineHeight,
-        letterSpacing:  'normal',
-        color:          colors.text,
-        margin:         0,
-      };
-
-    // ── Body text (--body-1) ──────────────────────────────────────────────
-    case 'text':
-      return {
-        ...base,
-        fontSize:    node.typography?.fontSize ? `${node.typography.fontSize}px` : typography.body.size,
-        fontWeight:  node.typography?.fontWeight ?? fontWeights.default,
-        fontFamily:  typography.body.family,
-        lineHeight:  typography.body.lineHeight,
-        color:       colors.text,
-        textAlign:   node.typography?.textAlign ?? 'left',
-        margin:      0,
-      };
-
-    // ── Label (--label-1, uppercase for BMW labels) ───────────────────────
-    case 'label':
-      return {
-        ...base,
-        fontSize:       typography.label.size,          // BMW: 0.75rem
-        fontWeight:     fontWeights.clickable,           // BMW: 500
-        fontFamily:     typography.label.family,
-        lineHeight:     typography.label.lineHeight,
-        color:          colors.textSecondary,
-        margin:         0,
-      };
-
-    // ── Image / photo / avatar ────────────────────────────────────────────
-    case 'image':
-      return {
-        ...base,
-        display:        'block',
-        width:          '100%',
-        height:         node.layout?.height ? `${node.layout.height}px` : 'auto',
-        objectFit:      'cover',
-        borderRadius:   0,                              // BMW: images have no radius
-        backgroundColor: colors.background,
-      };
-
-    // ── Badge / tag / chip ────────────────────────────────────────────────
-    case 'badge':
+    // ── Icon button ───────────────────────────────────────────────────────
+    case 'iconButton':
       return {
         ...base,
         display:         'inline-flex',
         alignItems:      'center',
-        backgroundColor: colors.primary,
-        color:           '#FFFFFF',
-        padding:         `${spacing.xs} ${spacing.sm}`,
-        borderRadius:    borderRadius.sm,
-        fontSize:        typography.small.size,
-        fontWeight:      fontWeights.clickable,
-        fontFamily:      typography.label.family,
+        justifyContent:  'center',
+        width:           spacing.touchTargetMin,
+        height:          spacing.touchTargetMin,
+        backgroundColor: 'transparent',
+        color:           colors.text,
+        borderRadius:    borderRadius.full,
+        border:          'none',
+        cursor:          'pointer',
+        padding:         '0',
+        transition:      `background-color ${transitions.fast}`,
       };
 
-    // ── Divider / separator ───────────────────────────────────────────────
-    case 'divider':
+    // ── Heading ───────────────────────────────────────────────────────────
+    case 'heading':
       return {
         ...base,
-        width:           '100%',
-        height:          '1px',
-        backgroundColor: colors.borderDark,
-        margin:          `${spacing.lg} 0`,
-        border:          'none',
+        fontSize:   typography.heading1.size,
+        fontWeight: fontWeights.light,
+        lineHeight: typography.heading1.lineHeight,
+        color:      colors.text,
+        margin:     '0',
+      };
+
+    // ── Text ──────────────────────────────────────────────────────────────
+    case 'text':
+      return {
+        ...base,
+        fontSize:   typography.body.size,
+        lineHeight: typography.body.lineHeight,
+        color:      colors.text,
+        margin:     '0',
       };
 
     // ── Icon ──────────────────────────────────────────────────────────────
@@ -264,47 +374,91 @@ function buildStyleForType(type, tokens, node) {
         display:        'inline-flex',
         alignItems:     'center',
         justifyContent: 'center',
-        color:          colors.text,
         width:          '1.5rem',
         height:         '1.5rem',
-        fontFamily:     '"bmw_next_icons"',
+        color:          colors.text,
       };
 
-    // ── List ──────────────────────────────────────────────────────────────
-    case 'list':
+    // ── Divider ───────────────────────────────────────────────────────────
+    case 'divider':
+      return {
+        width:           '100%',
+        height:          '1px',
+        backgroundColor: colors.divider,
+        border:          'none',
+        margin:          `${spacing.sm} 0`,
+        flexShrink:      '0',
+      };
+
+    // ── Card ──────────────────────────────────────────────────────────────
+    case 'card':
       return {
         ...base,
-        display:       'flex',
-        flexDirection: 'column',
-        gap:           spacing.xs,
-        width:         '100%',
-        listStyle:     'none',
-        padding:       0,
-        margin:        0,
-        color:         colors.text,
+        display:         'flex',
+        flexDirection:   node.layout?.direction === 'row' ? 'row' : 'column',
+        gap:             spacing.md,
+        backgroundColor: colors.backgroundElevated,
+        borderRadius:    borderRadius.lg,
+        padding:         spacing.lg,
+        boxShadow:       shadows.sm,
+        color:           colors.text,
+        overflow:        'hidden',
       };
 
-    // ── Fallback ──────────────────────────────────────────────────────────
-    case 'rectangle':
+    // ── Toggle ────────────────────────────────────────────────────────────
+    case 'toggle':
+      return {
+        ...base,
+        display:         'inline-flex',
+        alignItems:      'center',
+        width:           '3.25rem',
+        height:          '2rem',
+        backgroundColor: colors.surface,
+        borderRadius:    borderRadius.full,
+        padding:         '0.25rem',
+        cursor:          'pointer',
+        transition:      `background-color ${transitions.fast}`,
+      };
+
+    // ── Slider ────────────────────────────────────────────────────────────
+    case 'slider':
+      return {
+        ...base,
+        display:    'flex',
+        alignItems: 'center',
+        width:      '100%',
+        height:     spacing.touchTargetMin,
+        cursor:     'pointer',
+      };
+
+    // ── Image placeholder ─────────────────────────────────────────────────
+    case 'image':
+      return {
+        ...base,
+        display:         'flex',
+        alignItems:      'center',
+        justifyContent:  'center',
+        backgroundColor: colors.surface,
+        borderRadius:    borderRadius.md,
+        width:           '100%',
+        height:          node.layout?.height ? `${node.layout.height}px` : 'auto',
+        objectFit:       'cover',
+        color:           colors.textMuted,
+      };
+
+    // ── Generic container ─────────────────────────────────────────────────
+    case 'container':
     default:
       return {
         ...base,
-        backgroundColor: raw.backgroundColor ?? 'transparent',
-        borderRadius:    raw.borderRadius ? `${raw.borderRadius}px` : undefined,
-        border:          raw.strokeColor ? `${raw.strokeWidth}px solid ${raw.strokeColor}` : undefined,
+        display:         'flex',
+        flexDirection:   node.layout?.direction === 'row' ? 'row' : 'column',
+        gap:             node.layout?.gap ? `${node.layout.gap}px` : spacing.md,
+        backgroundColor: 'transparent',
+        color:           colors.text,
+        width:           '100%',
       };
   }
-}
-
-// ---------------------------------------------------------------------------
-// Padding helper
-// ---------------------------------------------------------------------------
-
-function buildPadding(padding, spacing) {
-  if (!padding) return spacing.lg;
-  const { top = 0, right = 0, bottom = 0, left = 0 } = padding;
-  if (top === 0 && right === 0 && bottom === 0 && left === 0) return undefined;
-  return `${top}px ${right}px ${bottom}px ${left}px`;
 }
 
 // ---------------------------------------------------------------------------
@@ -353,7 +507,6 @@ export function applyTokens(node, tokens) {
   const allWarnings = [];
 
   const style = buildStyleForType(node.type, tokens, node);
-
   node.style = Object.fromEntries(
     Object.entries(style).filter(([, v]) => v !== undefined)
   );

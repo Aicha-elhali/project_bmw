@@ -1,34 +1,53 @@
 /**
- * Phase 2 — Figma → Internal Component Representation
+ * Phase 2 — Figma → Navigation Component Tree
  *
- * Maps raw Figma nodes to a simplified, type-safe component tree.
- * The mapping runs on the node NAME first, then falls back to the node TYPE.
- * Add your own name patterns to NAME_PATTERNS to extend the mapping.
+ * Maps raw Figma nodes to BMW iDrive navigation component types
+ * based on layer names. The mapping runs on the node NAME first
+ * (case-insensitive partial match), then falls back to the Figma TYPE.
+ *
+ * Layer-naming convention for Figma wireframes:
+ *   Include keywords like "map", "dock", "route", "statusBar", "climate"
+ *   in your Figma layer names so the pipeline picks the right component type.
  */
 
 // ---------------------------------------------------------------------------
 // Name-based mapping table (case-insensitive, partial match)
-// Key: regex pattern  →  Value: component type string
 // Order matters — first match wins.
 // ---------------------------------------------------------------------------
 const NAME_PATTERNS = [
-  [/btn|button|cta/i,           'button'],
-  [/input|field|textfield|search/i, 'input'],
-  [/card/i,                     'card'],
-  [/nav|navbar|navigation|header/i, 'navbar'],
-  [/footer/i,                   'footer'],
-  [/sidebar|aside/i,            'sidebar'],
-  [/modal|dialog|overlay/i,     'modal'],
-  [/image|img|photo|avatar/i,   'image'],
-  [/icon/i,                     'icon'],
-  [/badge|tag|chip/i,           'badge'],
-  [/heading|title|h1|h2|h3/i,   'heading'],
-  [/label|caption|hint/i,       'label'],
-  [/divider|separator|hr/i,     'divider'],
-  [/list/i,                     'list'],
-  [/table/i,                    'table'],
-  [/form/i,                     'form'],
-  [/section|page|screen|frame/i,'container'],
+  // ── Navigation-specific ─────────────────────────────────────────────────
+  [/status.?bar|top.?bar/i,                              'statusBar'],
+  [/map|karte|map.?view|map.?area/i,                     'map'],
+  [/route.?info|route.?panel|route.?detail|eta|ankunft/i, 'routeInfo'],
+  [/turn.?indicator|turn.?by.?turn|abbieg|richtung|maneuver/i, 'turnIndicator'],
+  [/search.?bar|search.?field|such|address.?input/i,     'searchBar'],
+  [/dock.?item|tab.?item|nav.?item|menu.?item/i,         'dockItem'],
+  [/dock|tab.?bar|bottom.?nav|menu.?bar|app.?bar/i,      'dock'],
+  [/side.?panel|drawer|detail.?panel/i,                   'sidePanel'],
+  [/media.?player|musik|music|radio|audio|now.?playing/i, 'mediaPlayer'],
+  [/climate|klima|temperature|temp.?control|ac.?control/i,'climateControl'],
+  [/quick.?action|fab|float.?button|map.?action/i,       'quickAction'],
+  [/poi.?list|result.?list|ergebnis/i,                    'poiList'],
+  [/poi.?item|poi.?entry|result.?item/i,                  'poiItem'],
+  [/speed.?limit|tempo.?limit|geschwindigkeit/i,          'speedLimit'],
+  [/vehicle.?info|fahrzeug|range|reichweite|fuel|tank|battery|akku/i, 'vehicleInfo'],
+
+  // ── Generic UI elements ─────────────────────────────────────────────────
+  [/icon.?btn|icon.?button/i,                             'iconButton'],
+  [/btn|button|cta/i,                                     'button'],
+  [/input|field|textfield/i,                              'searchBar'],
+  [/card|tile|widget/i,                                   'card'],
+  [/nav|navbar|navigation|header/i,                       'statusBar'],
+  [/toggle|switch/i,                                      'toggle'],
+  [/slider|range/i,                                       'slider'],
+  [/heading|title|h1|h2|h3/i,                             'heading'],
+  [/label|caption|hint|subtitle/i,                        'text'],
+  [/divider|separator|hr/i,                               'divider'],
+  [/image|img|photo|bild|avatar/i,                        'image'],
+  [/icon/i,                                               'icon'],
+  [/badge|tag|chip/i,                                     'text'],
+  [/list/i,                                               'poiList'],
+  [/section|page|screen|frame|container|group/i,          'container'],
 ];
 
 // Figma TYPE → component type fallback
@@ -39,7 +58,7 @@ const TYPE_FALLBACK = {
   COMPONENT_SET: 'container',
   INSTANCE:      'container',
   TEXT:          'text',
-  RECTANGLE:     'rectangle',
+  RECTANGLE:     'container',
   VECTOR:        'icon',
   ELLIPSE:       'icon',
   LINE:          'divider',
@@ -53,7 +72,7 @@ function resolveType(figmaNode) {
   for (const [pattern, type] of NAME_PATTERNS) {
     if (pattern.test(figmaNode.name)) return type;
   }
-  return TYPE_FALLBACK[figmaNode.type] ?? 'unknown';
+  return TYPE_FALLBACK[figmaNode.type] ?? 'container';
 }
 
 function resolveLayoutDirection(node) {
@@ -81,9 +100,9 @@ function extractFill(fills = []) {
 let _nodeCounter = 0;
 
 /**
- * Transform a single Figma node into our internal representation.
+ * Transform a single Figma node into an internal navigation component.
  * @param {object} figmaNode — already extracted Figma node
- * @param {number} depth     — current tree depth (for debug)
+ * @param {number} depth     — current tree depth
  * @returns {object} Internal component node
  */
 export function transformNode(figmaNode, depth = 0) {
@@ -94,7 +113,6 @@ export function transformNode(figmaNode, depth = 0) {
     id:    figmaNode.id || `node-${++_nodeCounter}`,
     type,
     label: figmaNode.name,
-    // Layout — Figma coordinates + direction hint for Flexbox
     layout: {
       width:     Math.round(box.width)  || null,
       height:    Math.round(box.height) || null,
@@ -109,16 +127,13 @@ export function transformNode(figmaNode, depth = 0) {
         left:   figmaNode.paddingLeft   || 0,
       },
     },
-    // Extracted visual values (raw — token mapping happens in Phase 3)
     raw: {
       backgroundColor: extractFill(figmaNode.fills),
       borderRadius:    figmaNode.cornerRadius || 0,
       strokeColor:     extractFill(figmaNode.strokes),
       strokeWidth:     figmaNode.strokeWeight || 0,
     },
-    // Text content (only for TEXT nodes)
     content: figmaNode.characters ?? null,
-    // Typography details
     typography: figmaNode.style ? {
       fontSize:   figmaNode.style.fontSize,
       fontWeight: figmaNode.style.fontWeight,
@@ -126,7 +141,6 @@ export function transformNode(figmaNode, depth = 0) {
       lineHeight: figmaNode.style.lineHeightPx,
       textAlign:  (figmaNode.style.textAlignHorizontal ?? 'LEFT').toLowerCase(),
     } : null,
-    // Debug / traceability
     meta: {
       figmaType:    figmaNode.type,
       originalName: figmaNode.name,
@@ -136,7 +150,6 @@ export function transformNode(figmaNode, depth = 0) {
     children: [],
   };
 
-  // Recurse
   if (figmaNode.children?.length) {
     node.children = figmaNode.children.map(child => transformNode(child, depth + 1));
   }
@@ -145,7 +158,7 @@ export function transformNode(figmaNode, depth = 0) {
 }
 
 /**
- * Transform a complete Figma frame (root node) into an internal component tree.
+ * Transform a complete Figma frame into a navigation component tree.
  * Resets the node counter so IDs are stable per run.
  */
 export function transformFrame(figmaFrame) {

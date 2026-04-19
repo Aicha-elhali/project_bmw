@@ -1,61 +1,93 @@
-// Figma: Vite entry point
-
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 
-const globalStyles = `
-  *, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-
-  html {
-    font-size: 16px;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-  }
-
-  body {
-    font-family: "bmwTypeNextWeb", "Arial", "Helvetica", "Roboto", sans-serif;
-    font-weight: 300;
-    background-color: #F6F6F6;
-    color: #262626;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  button {
-    font-family: "bmwTypeNextWeb", "Arial", "Helvetica", "Roboto", sans-serif;
-  }
-
-  input {
-    font-family: "bmwTypeNextWeb", "Arial", "Helvetica", "Roboto", sans-serif;
-  }
-
-  :focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 0.0625rem #FFFFFF, 0 0 0 0.3125rem #1C69D4;
-  }
-
-  @font-face {
-    font-family: 'bmwTypeNextWeb';
-    src: local('Arial');
-    font-weight: 300;
-    font-style: normal;
-  }
-`;
+// BMW iDrive global styles
+const globalStyles = [
+  '@font-face {',
+  "  font-family: 'bmwTypeNextWeb';",
+  "  src: local('Arial');",
+  '  font-weight: 300;',
+  '  font-style: normal;',
+  '}',
+  '@font-face {',
+  "  font-family: 'bmwTypeNextWeb';",
+  "  src: local('Arial');",
+  '  font-weight: 400;',
+  '  font-style: normal;',
+  '}',
+  '@font-face {',
+  "  font-family: 'bmwTypeNextWeb';",
+  "  src: local('Arial');",
+  '  font-weight: 500;',
+  '  font-style: normal;',
+  '}',
+  '@font-face {',
+  "  font-family: 'bmwTypeNextWeb';",
+  "  src: local('Arial');",
+  '  font-weight: 700;',
+  '  font-style: normal;',
+  '}',
+  '* {',
+  '  box-sizing: border-box;',
+  '  margin: 0;',
+  '  padding: 0;',
+  '  -webkit-tap-highlight-color: transparent;',
+  '}',
+  'html {',
+  '  font-size: 16px;',
+  '  -webkit-font-smoothing: antialiased;',
+  '  -moz-osx-font-smoothing: grayscale;',
+  '}',
+  'body {',
+  '  font-family: "bmwTypeNextWeb", "Arial", "Helvetica", sans-serif;',
+  '  font-weight: 300;',
+  '  background-color: #000000;',
+  '  color: #FFFFFF;',
+  '  width: 100vw;',
+  '  height: 100vh;',
+  '  overflow: hidden;',
+  '  cursor: default;',
+  '  user-select: none;',
+  '}',
+  '#root {',
+  '  width: 100%;',
+  '  height: 100%;',
+  '}',
+  'button {',
+  '  font-family: inherit;',
+  '  cursor: pointer;',
+  '  border: none;',
+  '  background: none;',
+  '  color: inherit;',
+  '}',
+  'input {',
+  '  font-family: inherit;',
+  '  border: none;',
+  '  outline: none;',
+  '  background: none;',
+  '  color: inherit;',
+  '}',
+  '::-webkit-scrollbar {',
+  '  width: 4px;',
+  '}',
+  '::-webkit-scrollbar-track {',
+  '  background: transparent;',
+  '}',
+  '::-webkit-scrollbar-thumb {',
+  '  background: rgba(255,255,255,0.15);',
+  '  border-radius: 2px;',
+  '}',
+  '::-webkit-scrollbar-thumb:hover {',
+  '  background: rgba(255,255,255,0.25);',
+  '}',
+].join('\n');
 
 const styleTag = document.createElement('style');
 styleTag.textContent = globalStyles;
 document.head.appendChild(styleTag);
 
-const container = document.getElementById('root');
-const root = createRoot(container);
-
-root.render(
+createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>

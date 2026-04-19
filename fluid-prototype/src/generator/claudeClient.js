@@ -1,17 +1,18 @@
 /**
- * Phase 4b — Claude API Client
+ * Phase 4b — Claude API Client (Streaming)
  *
- * Sends the prompt to Claude and parses the generated code blocks
- * from the response into a map of { filename → code }.
+ * Sends the prompt to Claude using streaming to handle long generation
+ * times (32K+ tokens). Parses the response into { filename → code }.
  */
 
 import Anthropic from '@anthropic-ai/sdk';
 
-const MODEL = process.env.CLAUDE_MODEL ?? 'claude-sonnet-4-6';
-const MAX_TOKENS = 8192;
+const MODEL      = process.env.CLAUDE_MODEL ?? 'claude-sonnet-4-6';
+const MAX_TOKENS = 32768;
 
 /**
- * Send the generation prompt to Claude and return raw text.
+ * Send the generation prompt to Claude via streaming and return raw text.
+ * Shows a live character counter during generation.
  * @param {string} prompt
  * @param {string} apiKey — ANTHROPIC_API_KEY
  * @returns {Promise<string>}
@@ -19,18 +20,32 @@ const MAX_TOKENS = 8192;
 export async function generateWithClaude(prompt, apiKey) {
   const client = new Anthropic({ apiKey });
 
-  const message = await client.messages.create({
+  const stream = client.messages.stream({
     model: MODEL,
     max_tokens: MAX_TOKENS,
-    system: `You are a senior React engineer who generates clean, production-quality React components
-from Figma wireframes. You always follow the exact output format specified and never add
-explanatory prose outside of code blocks. Every response is valid, immediately runnable code.`,
+    system: `You are a senior React engineer who generates clean, production-quality React components for BMW iDrive automotive infotainment interfaces. You follow the exact output format specified — every file starts with // FILE: and every response is valid, immediately runnable code. You never add explanatory prose outside of code blocks.`,
     messages: [
       { role: 'user', content: prompt },
     ],
   });
 
-  return message.content
+  // Show progress during generation
+  let charCount = 0;
+  let fileCount = 0;
+  stream.on('text', (text) => {
+    charCount += text.length;
+    // Detect new file boundaries for progress feedback
+    if (text.includes('// FILE:')) fileCount++;
+    // Update progress every ~1000 chars
+    if (charCount % 1000 < text.length) {
+      process.stderr.write(`\r  ⏳ Generating… ${(charCount / 1000).toFixed(1)}k chars, ${fileCount} files detected`);
+    }
+  });
+
+  const finalMessage = await stream.finalMessage();
+  process.stderr.write(`\r  ⏳ Generation complete: ${(charCount / 1000).toFixed(1)}k chars, ${fileCount} files\n`);
+
+  return finalMessage.content
     .filter(block => block.type === 'text')
     .map(block => block.text)
     .join('\n');
@@ -38,11 +53,7 @@ explanatory prose outside of code blocks. Every response is valid, immediately r
 
 /**
  * Parse Claude's response into individual files.
- * Looks for patterns like:
- *   ```jsx
- *   // FILE: Button.jsx
- *   ...code...
- *   ```
+ * Supports flat filenames (Button.jsx) and paths (services/foo.js, hooks/bar.js).
  *
  * @param {string} rawResponse
  * @returns {Map<string, string>}  filename → code
@@ -50,22 +61,20 @@ explanatory prose outside of code blocks. Every response is valid, immediately r
 export function parseGeneratedFiles(rawResponse) {
   const files = new Map();
 
-  // Match all fenced code blocks (```jsx ... ``` or ```js ... ```)
   const blockRegex = /```(?:jsx?|tsx?)\n([\s\S]*?)```/g;
   let match;
 
   while ((match = blockRegex.exec(rawResponse)) !== null) {
     const blockContent = match[1].trim();
 
-    // Extract filename from first line comment: // FILE: Foo.jsx
+    // Extract filename from: // FILE: ComponentName.jsx or // FILE: services/foo.js
     const fileLineMatch = blockContent.match(/^\/\/\s*FILE:\s*([^\n]+)/);
     if (fileLineMatch) {
       const filename = fileLineMatch[1].trim();
-      // Strip the FILE comment line from the code
       const code = blockContent.replace(/^\/\/\s*FILE:\s*[^\n]+\n/, '').trim();
       files.set(filename, code);
     } else {
-      // Fallback: try to detect file from import/export pattern
+      // Fallback: detect from export default
       const exportMatch = blockContent.match(/export default (\w+)/);
       if (exportMatch) {
         const filename = `${exportMatch[1]}.jsx`;
@@ -80,7 +89,7 @@ export function parseGeneratedFiles(rawResponse) {
 }
 
 /**
- * Full step: generate + parse.
+ * Full step: generate (streaming) + parse.
  * @param {string} prompt
  * @param {string} apiKey
  * @returns {Promise<Map<string, string>>}
