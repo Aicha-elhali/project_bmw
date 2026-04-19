@@ -1,0 +1,145 @@
+{
+  "colors": {
+    "primary": "#1a6fd4",
+    "primaryHover": "#1558aa",
+    "primaryLight": "#2d8ef5",
+    "primarySubtle": "#0d2a4d",
+    "background": "#020d1a",
+    "backgroundLight": "#071628",
+    "surface": "#0a1e35",
+    "text": "#ffffff",
+    "textDark": "#0a1e35",
+    "textSecondary": "#a0b8d0",
+    "textMuted": "#5a7a95",
+    "textOnDark": "#ffffff",
+    "textOnDarkSecondary": "#8ab0cc",
+    "textOnDarkMuted": "#4a6a80",
+    "accent": "#1e7be8",
+    "border": "#1a3a5c",
+    "borderDark": "#0d2035",
+    "focusRing": "#2d8ef5",
+    "success": "#00c853",
+    "error": "#e53935",
+    "overlay": "rgba(2, 13, 26, 0.75)",
+    "shadow": "rgba(0, 0, 0, 0.6)",
+    "shadowStrong": "rgba(0, 0, 0, 0.85)"
+  },
+  "spacing": {
+    "xs": "0.25rem",
+    "sm": "0.5rem",
+    "md": "1rem",
+    "lg": "1.5rem",
+    "xl": "2rem",
+    "xxl": "3rem",
+    "section": "4rem",
+    "touchTarget": "3rem"
+  },
+  "typography": {
+    "heading1": {
+      "size": "1.5rem",
+      "sizeDesktop": "2rem",
+      "weight": "700",
+      "family": "'BMWTypeNext', 'Arial', 'Helvetica', sans-serif",
+      "lineHeight": "1.2",
+      "lineHeightDesktop": "1.2",
+      "letterSpacing": "0.02em"
+    },
+    "heading2": {
+      "size": "1.25rem",
+      "sizeDesktop": "1.5rem",
+      "weight": "600",
+      "family": "'BMWTypeNext', 'Arial', 'Helvetica', sans-serif",
+      "lineHeight": "1.3",
+      "lineHeightDesktop": "1.3",
+      "letterSpacing": "0.01em"
+    },
+    "heading3": {
+      "size": "1rem",
+      "sizeDesktop": "1.125rem",
+      "weight": "600",
+      "family": "'BMWTypeNext', 'Arial', 'Helvetica', sans-serif",
+      "lineHeight": "1.4",
+      "lineHeightDesktop": "1.4",
+      "letterSpacing": "0.01em"
+    },
+    "heading": {
+      "size": "1.25rem",
+      "weight": "700",
+      "family": "'BMWTypeNext', 'Arial', 'Helvetica', sans-serif",
+      "lineHeight": "1.3"
+    },
+    "subheading": {
+      "size": "0.875rem",
+      "weight": "600",
+      "family": "'BMWTypeNext', 'Arial', 'Helvetica', sans-serif",
+      "lineHeight": "1.4"
+    },
+    "body": {
+      "size": "0.875rem",
+      "weight": "400",
+      "family": "'BMWTypeNext', 'Arial', 'Helvetica', sans-serif",
+      "lineHeight": "1.5"
+    },
+    "bodySmall": {
+      "size": "0.75rem",
+      "weight": "400",
+      "family": "'BMWTypeNext', 'Arial', 'Helvetica', sans-serif",
+      "lineHeight": "1.5"
+    },
+    "small": {
+      "size": "0.625rem",
+      "weight": "400",
+      "family": "'BMWTypeNext', 'Arial', 'Helvetica', sans-serif",
+      "lineHeight": "1.4"
+    },
+    "label": {
+      "size": "0.6875rem",
+      "weight": "500",
+      "family": "'BMWTypeNext', 'Arial', 'Helvetica', sans-serif",
+      "lineHeight": "1.2",
+      "letterSpacing": "0.08em"
+    }
+  },
+  "fontWeights": {
+    "default": "400",
+    "input": "400",
+    "clickable": "600",
+    "link": "500",
+    "price": "700"
+  },
+  "borderRadius": {
+    "none": "0",
+    "sm": "0.25rem",
+    "md": "0.5rem",
+    "lg": "0.75rem",
+    "xl": "1rem",
+    "xxl": "1.5rem",
+    "full": "9999px"
+  },
+  "shadows": {
+    "sm": "0 2px 8px rgba(0, 0, 0, 0.5)",
+    "md": "0 4px 20px rgba(0, 0, 0, 0.7)",
+    "focus": "0 0 0 2px #2d8ef5",
+    "focusInset": "inset 0 0 0 2px #2d8ef5"
+  },
+  "transitions": {
+    "fast": "0.15s ease",
+    "medium": "0.3s ease",
+    "slow": "0.5s ease"
+  },
+  "breakpoints": {
+    "small": "768px",
+    "medium": "1024px",
+    "large": "1280px",
+    "xl": "1440px",
+    "xxl": "1920px"
+  },
+  "_meta": {
+    "name": "navigation-dark-hud",
+    "description": "BMW iDrive navigation HUD dark theme with map, shortcuts, and connect panel.",
+    "brand": "BMW",
+    "theme": "dark",
+    "source": "Extracted from Figma file screenshot, frame bmw_idrive_navigation",
+    "font": "BMWTypeNext"
+  }
+}
