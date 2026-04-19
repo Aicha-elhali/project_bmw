@@ -1,28 +1,37 @@
 {
   "colors": {
     "primary": "#1a6fd4",
-    "primaryHover": "#1558aa",
-    "primaryLight": "#2d8ef5",
+    "primaryHover": "#155bb0",
+    "primaryLight": "#2a85f0",
     "primarySubtle": "#0d2a4d",
-    "background": "#020d1a",
-    "backgroundLight": "#071628",
-    "surface": "#0a1e35",
+    "background": "#050d1a",
+    "backgroundLight": "#0a1628",
+    "surface": "#0f1e35",
     "text": "#ffffff",
-    "textDark": "#0a1e35",
-    "textSecondary": "#a0b8d0",
-    "textMuted": "#5a7a95",
+    "textDark": "#0a1628",
+    "textSecondary": "#a0b8d8",
+    "textMuted": "#5a7a99",
     "textOnDark": "#ffffff",
-    "textOnDarkSecondary": "#8ab0cc",
-    "textOnDarkMuted": "#4a6a80",
-    "accent": "#1e7be8",
+    "textOnDarkSecondary": "#b0c8e0",
+    "textOnDarkMuted": "#506880",
+    "accent": "#1e7fe8",
     "border": "#1a3a5c",
-    "borderDark": "#0d2035",
-    "focusRing": "#2d8ef5",
+    "borderDark": "#0d2040",
+    "focusRing": "#1a6fd4",
     "success": "#00c853",
     "error": "#e53935",
-    "overlay": "rgba(2, 13, 26, 0.75)",
+    "overlay": "rgba(5, 13, 26, 0.75)",
     "shadow": "rgba(0, 0, 0, 0.6)",
-    "shadowStrong": "rgba(0, 0, 0, 0.85)"
+    "shadowStrong": "rgba(0, 0, 0, 0.85)",
+    "backgroundGradient": "linear-gradient(180deg, #0a1628 0%, #050d1a 100%)",
+    "panelGradient": "linear-gradient(180deg, #122040 0%, #0a1830 100%)",
+    "accentGlow": "rgba(26, 111, 212, 0.4)",
+    "mapBackground": "#0d2535",
+    "mapRoad": "#b0bec5",
+    "mapBuilding": "#1565c0",
+    "statusBarBackground": "#050d1a",
+    "bottomBarBackground": "#07101e",
+    "warningYellow": "#f9a825"
   },
   "spacing": {
     "xs": "0.25rem",
@@ -39,7 +48,7 @@
       "size": "1.5rem",
       "sizeDesktop": "2rem",
       "weight": "700",
-      "family": "'BMWTypeNext', 'Arial', 'Helvetica', sans-serif",
+      "family": "'BMWTypeNext', 'Arial', Helvetica, sans-serif",
       "lineHeight": "1.2",
       "lineHeightDesktop": "1.2",
       "letterSpacing": "0.02em"
@@ -48,7 +57,7 @@
       "size": "1.25rem",
       "sizeDesktop": "1.5rem",
       "weight": "600",
-      "family": "'BMWTypeNext', 'Arial', 'Helvetica', sans-serif",
+      "family": "'BMWTypeNext', 'Arial', Helvetica, sans-serif",
       "lineHeight": "1.3",
       "lineHeightDesktop": "1.3",
       "letterSpacing": "0.01em"
@@ -57,7 +66,7 @@
       "size": "1rem",
       "sizeDesktop": "1.125rem",
       "weight": "600",
-      "family": "'BMWTypeNext', 'Arial', 'Helvetica', sans-serif",
+      "family": "'BMWTypeNext', 'Arial', Helvetica, sans-serif",
       "lineHeight": "1.4",
       "lineHeightDesktop": "1.4",
       "letterSpacing": "0.01em"
@@ -65,39 +74,39 @@
     "heading": {
       "size": "1.25rem",
       "weight": "700",
-      "family": "'BMWTypeNext', 'Arial', 'Helvetica', sans-serif",
+      "family": "'BMWTypeNext', 'Arial', Helvetica, sans-serif",
       "lineHeight": "1.3"
     },
     "subheading": {
       "size": "0.875rem",
       "weight": "600",
-      "family": "'BMWTypeNext', 'Arial', 'Helvetica', sans-serif",
+      "family": "'BMWTypeNext', 'Arial', Helvetica, sans-serif",
       "lineHeight": "1.4"
     },
     "body": {
       "size": "0.875rem",
       "weight": "400",
-      "family": "'BMWTypeNext', 'Arial', 'Helvetica', sans-serif",
+      "family": "'BMWTypeNext', 'Arial', Helvetica, sans-serif",
       "lineHeight": "1.5"
     },
     "bodySmall": {
       "size": "0.75rem",
       "weight": "400",
-      "family": "'BMWTypeNext', 'Arial', 'Helvetica', sans-serif",
+      "family": "'BMWTypeNext', 'Arial', Helvetica, sans-serif",
       "lineHeight": "1.5"
     },
     "small": {
       "size": "0.625rem",
       "weight": "400",
-      "family": "'BMWTypeNext', 'Arial', 'Helvetica', sans-serif",
+      "family": "'BMWTypeNext', 'Arial', Helvetica, sans-serif",
       "lineHeight": "1.4"
     },
     "label": {
       "size": "0.6875rem",
       "weight": "500",
-      "family": "'BMWTypeNext', 'Arial', 'Helvetica', sans-serif",
-      "lineHeight": "1.2",
-      "letterSpacing": "0.08em"
+      "family": "'BMWTypeNext', 'Arial', Helvetica, sans-serif",
+      "lineHeight": "1.3",
+      "letterSpacing": "0.05em"
     }
   },
   "fontWeights": {
@@ -119,8 +128,10 @@
   "shadows": {
     "sm": "0 2px 8px rgba(0, 0, 0, 0.5)",
     "md": "0 4px 20px rgba(0, 0, 0, 0.7)",
-    "focus": "0 0 0 2px #2d8ef5",
-    "focusInset": "inset 0 0 0 2px #2d8ef5"
+    "focus": "0 0 0 2px rgba(26, 111, 212, 0.8)",
+    "focusInset": "inset 0 0 0 2px rgba(26, 111, 212, 0.8)",
+    "glow": "0 0 16px rgba(26, 111, 212, 0.5)",
+    "panelDepth": "0 8px 32px rgba(0, 0, 0, 0.8)"
   },
   "transitions": {
     "fast": "0.15s ease",
@@ -134,9 +145,15 @@
     "xl": "1440px",
     "xxl": "1920px"
   },
+  "shapes": {
+    "cardSkewAngle": "-6deg",
+    "cardClipPath": "polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%)",
+    "panelGeometry": "trapezoid",
+    "leftPanelClipPath": "polygon(0% 0%, 100% 0%, 94% 100%, 0% 100%)"
+  },
   "_meta": {
-    "name": "navigation-dark-hud",
-    "description": "BMW iDrive navigation HUD dark theme with map, shortcuts, and connect panel.",
+    "name": "bmw_idrive_navigation",
+    "description": "BMW iDrive dark navigation HUD with skewed card panels, map view, and status bar.",
     "brand": "BMW",
     "theme": "dark",
     "source": "Extracted from Figma file screenshot, frame bmw_idrive_navigation",
