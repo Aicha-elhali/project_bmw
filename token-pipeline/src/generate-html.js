@@ -10,7 +10,7 @@
  *   node src/generate-html.js screenshots/bmw_idrive_navigation.png --out public/navigation.html
  */
 
-import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, readdir, access } from 'node:fs/promises';
 import { basename, extname, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Anthropic from '@anthropic-ai/sdk';
@@ -230,26 +230,37 @@ async function main() {
 
   const outPath = args.out ?? join(DEFAULT_OUT, `${name}.html`);
 
+  const forceTokens = process.argv.includes('--new-tokens');
+
   console.log(`\n━━━ Screenshot → Tokens → HTML Pipeline ━━━\n`);
   console.log(`▸ Screenshot: ${screenshotPath}`);
   console.log(`▸ Output:     ${outPath}\n`);
 
-  // Step 1: Extract tokens
-  console.log(`[Step 1/3] Extracting design tokens from screenshot…`);
-  const tokens = await extractTokensFromScreenshot(screenshotPath, name, apiKey);
-
   await mkdir(SETS_DIR, { recursive: true });
   const jsonPath = join(SETS_DIR, `${name}.json`);
-  await writeFile(jsonPath, JSON.stringify(tokens, null, 2) + '\n');
-  console.log(`  ✓ Tokens → sets/${name}.json`);
+  const cssPath  = join(SETS_DIR, `${name}.css`);
 
-  // Step 2: Convert to CSS
-  console.log(`[Step 2/3] Converting tokens to CSS variables…`);
-  const tokensCSS = tokensToCSSVariables(tokens);
+  let tokensCSS;
+  const tokensExist = await access(jsonPath).then(() => true).catch(() => false);
 
-  const cssPath = join(SETS_DIR, `${name}.css`);
-  await writeFile(cssPath, tokensCSS + '\n');
-  console.log(`  ✓ CSS    → sets/${name}.css`);
+  if (tokensExist && !forceTokens) {
+    // Reuse existing tokens
+    console.log(`[Step 1/3] Tokens already exist → sets/${name}.json (skipped)`);
+    const tokens = JSON.parse(await readFile(jsonPath, 'utf-8'));
+    tokensCSS = tokensToCSSVariables(tokens);
+    console.log(`[Step 2/3] CSS variables regenerated from existing tokens`);
+  } else {
+    // Extract fresh tokens
+    console.log(`[Step 1/3] Extracting design tokens from screenshot…`);
+    const tokens = await extractTokensFromScreenshot(screenshotPath, name, apiKey);
+    await writeFile(jsonPath, JSON.stringify(tokens, null, 2) + '\n');
+    console.log(`  ✓ Tokens → sets/${name}.json`);
+
+    console.log(`[Step 2/3] Converting tokens to CSS variables…`);
+    tokensCSS = tokensToCSSVariables(tokens);
+    await writeFile(cssPath, tokensCSS + '\n');
+    console.log(`  ✓ CSS    → sets/${name}.css`);
+  }
 
   // Step 3: Generate HTML
   console.log(`[Step 3/3] Generating HTML from screenshot + tokens…`);
