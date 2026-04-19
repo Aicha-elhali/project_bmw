@@ -8,59 +8,78 @@
   :root {
     --color-primary: #1a6fd4;
     --color-primary-hover: #155bb0;
-    --color-primary-light: #2a85f0;
-    --color-primary-subtle: #0d2a4d;
-    --color-background: #050d1a;
-    --color-background-light: #0a1628;
-    --color-surface: #0f1e35;
+    --color-primary-light: #2a7fe4;
+    --color-primary-subtle: #0d3a6e;
+    --color-background: #04101e;
+    --color-background-light: #0a1f35;
+    --color-surface: #0d2a47;
     --color-text: #ffffff;
-    --color-text-dark: #0a1628;
-    --color-text-secondary: #a0b8d8;
-    --color-text-muted: #5a7a99;
+    --color-text-dark: #04101e;
+    --color-text-secondary: #b0c4de;
+    --color-text-muted: #6a8aaa;
     --color-text-on-dark: #ffffff;
-    --color-text-on-dark-secondary: #b0c8e0;
-    --color-text-on-dark-muted: #506880;
-    --color-accent: #1e7fe8;
-    --color-border: #1a3a5c;
-    --color-border-dark: #0d2040;
-    --color-focus-ring: #1a6fd4;
+    --color-text-on-dark-secondary: #a8c0d8;
+    --color-text-on-dark-muted: #5a7a96;
+    --color-accent: #ffd700;
+    --color-border: #1e4a7a;
+    --color-border-dark: #0a2540;
+    --color-focus-ring: #2a7fe4;
     --color-success: #00c853;
     --color-error: #e53935;
-    --color-overlay: rgba(5, 13, 26, 0.75);
+    --color-overlay: rgba(4, 16, 30, 0.75);
     --color-shadow: rgba(0, 0, 0, 0.6);
     --color-shadow-strong: rgba(0, 0, 0, 0.85);
-    --color-background-gradient: linear-gradient(180deg, #0a1628 0%, #050d1a 100%);
-    --color-panel-gradient: linear-gradient(180deg, #122040 0%, #0a1830 100%);
-    --color-accent-glow: rgba(26, 111, 212, 0.4);
-    --color-map-background: #0d2535;
-    --color-map-road: #b0bec5;
-    --color-map-building: #1565c0;
-    --color-status-bar-background: #050d1a;
-    --color-bottom-bar-background: #07101e;
-    --color-warning-yellow: #f9a825;
+    --color-background-gradient: linear-gradient(180deg, #04101e 0%, #081828 50%, #04101e 100%);
+    --color-surface-gradient: linear-gradient(135deg, #0d2a47 0%, #0a1f35 100%);
+    --color-accent-blue: #3a8ef6;
+    --color-map-background: #06243d;
+    --color-map-road: #c8d8e8;
+    --color-map-building: #1a5fa8;
+    --color-status-bar-text: #ffffff;
+    --color-button-connect: #1a6fd4;
+    --color-button-connect-text: #ffffff;
+    --color-panel-background: rgba(13, 42, 71, 0.92);
+    --color-skewed-card-background: rgba(15, 50, 90, 0.88);
+    --color-skewed-card-border: #1e5a9a;
+    --color-bottom-bar-background: rgba(4, 16, 30, 0.95);
+    --color-ac-off-indicator: #3a5a7a;
+    --color-temperature-bar: linear-gradient(90deg, #1a6fd4 0%, #e53935 100%);
     --spacing-xs: 0.25rem;
     --spacing-sm: 0.5rem;
     --spacing-md: 1rem;
     --spacing-lg: 1.5rem;
     --spacing-xl: 2rem;
     --spacing-xxl: 3rem;
-    --spacing-section: 4rem;
+    --spacing-section: 2.5rem;
     --spacing-touch-target: 3rem;
     --typography-heading1-size: 1.5rem;
+    --typography-heading1-weight: 700;
+    --typography-heading1-family: 'BMW Group', 'Arial', 'Helvetica', sans-serif;
     --typography-body-size: 0.875rem;
+    --typography-body-weight: 400;
+    --typography-body-family: 'BMW Group', 'Arial', 'Helvetica', sans-serif;
     --typography-body-small-size: 0.75rem;
     --typography-small-size: 0.625rem;
     --typography-label-size: 0.6875rem;
+    --typography-label-letter-spacing: 0.05em;
     --radius-sm: 0.25rem;
     --radius-md: 0.5rem;
     --radius-lg: 0.75rem;
-    --shadow-sm: 0 2px 8px rgba(0,0,0,0.5);
-    --shadow-md: 0 4px 20px rgba(0,0,0,0.7);
-    --shapes-card-clip-path: polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%);
-    --shapes-left-panel-clip-path: polygon(0% 0%, 100% 0%, 94% 100%, 0% 100%);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.7);
+    --shadow-glow: 0 0 16px rgba(26, 111, 212, 0.6);
+    --shadow-panel-glow: 0 8px 32px rgba(0, 0, 0, 0.8);
+    --shapes-card-skew-angle: -6deg;
+    --shapes-card-clip-path: polygon(6% 0%, 100% 0%, 94% 100%, 0% 100%);
+    --shapes-bottom-bar-height: 3.5rem;
+    --shapes-status-bar-height: 2.5rem;
   }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 
   body {
     background: #000;
@@ -68,74 +87,91 @@
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    font-family: 'Arial', Helvetica, sans-serif;
+    font-family: var(--typography-body-family);
   }
 
   .screen {
     width: 1260px;
     height: 630px;
     background: var(--color-background);
+    position: relative;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-    position: relative;
   }
 
   /* STATUS BAR */
   .status-bar {
-    height: 36px;
-    background: var(--color-status-bar-background);
+    height: var(--shapes-status-bar-height);
+    background: var(--color-background);
     display: flex;
     align-items: center;
+    justify-content: space-between;
     padding: 0 var(--spacing-md);
     flex-shrink: 0;
-    position: relative;
     z-index: 10;
+    border-bottom: 1px solid var(--color-border-dark);
   }
 
-  .status-bar .demo-mode {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    color: var(--color-text);
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-  }
-
-  .status-bar .status-right {
-    margin-left: auto;
+  .status-bar-left {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
-    color: var(--color-text);
-    font-size: 0.7rem;
   }
 
-  .status-bar .status-right .time {
-    font-size: 0.85rem;
+  .status-bar-center {
+    font-size: var(--typography-body-small-size);
     font-weight: 600;
+    color: var(--color-text);
+    letter-spacing: 0.1em;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 50%;
+    margin-top: -10px;
   }
 
-  .status-bar .status-right .time-am {
-    font-size: 0.6rem;
-    color: var(--color-text-secondary);
-  }
-
-  .status-bar .info-icon {
-    color: var(--color-text-secondary);
-    font-size: 0.75rem;
-  }
-
-  .status-icon {
+  .status-bar-right {
     display: flex;
     align-items: center;
+    gap: var(--spacing-sm);
+    margin-left: auto;
+  }
+
+  .status-item {
+    color: var(--color-text);
+    font-size: var(--typography-body-small-size);
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .time-display {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-left: var(--spacing-sm);
+  }
+
+  .time-am {
+    font-size: 0.6rem;
+    color: var(--color-text-secondary);
+    margin-left: 2px;
+  }
+
+  .avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ff8c00, #e53935);
+    margin-left: 4px;
   }
 
   /* MAIN CONTENT */
   .main-content {
     flex: 1;
     display: flex;
+    position: relative;
     overflow: hidden;
   }
 
@@ -147,153 +183,164 @@
     flex-direction: column;
     align-items: center;
     padding: var(--spacing-sm) 0;
-    gap: var(--spacing-lg);
+    gap: var(--spacing-md);
+    z-index: 10;
     flex-shrink: 0;
-    position: relative;
-    z-index: 5;
+    border-right: 2px solid var(--color-primary);
   }
 
   .sidebar-icon {
+    width: 36px;
+    height: 36px;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    color: var(--color-text-secondary);
+    justify-content: center;
   }
 
-  /* BLUE VERTICAL ACCENT LINE */
-  .accent-line {
-    width: 3px;
-    background: var(--color-primary);
-    flex-shrink: 0;
-    align-self: stretch;
-    box-shadow: 0 0 8px var(--color-accent-glow);
-  }
-
-  /* LEFT PANEL */
-  .left-panel {
-    width: 580px;
-    background: var(--color-background-light);
+  /* CONTENT PANEL */
+  .content-panel {
+    width: 42%;
+    background: transparent;
     display: flex;
     flex-direction: column;
-    padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-lg);
-    gap: var(--spacing-md);
-    flex-shrink: 0;
+    padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) 0;
+    gap: var(--spacing-sm);
+    z-index: 5;
     position: relative;
   }
 
-  /* CARDS SECTION */
-  .cards-section {
-    background: var(--color-surface);
-    clip-path: var(--shapes-left-panel-clip-path);
-    padding: var(--spacing-md);
+  /* CARDS AREA (top section) */
+  .cards-area {
+    background: var(--color-skewed-card-background);
+    border: 1px solid var(--color-skewed-card-border);
+    clip-path: polygon(18px 0, 100% 0, calc(100% - 18px) 100%, 0 100%);
+    padding: var(--spacing-md) var(--spacing-lg) var(--spacing-md) var(--spacing-lg);
+    position: relative;
+  }
+
+  .cards-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: 80px 70px;
+    grid-template-rows: 1fr 1fr;
     gap: var(--spacing-sm);
+    height: 210px;
   }
 
   .card {
-    background: var(--color-primary-subtle);
-    clip-path: var(--shapes-card-clip-path);
+    background: rgba(26, 111, 212, 0.25);
+    border: 1px solid var(--color-border);
+    clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     padding: var(--spacing-sm) var(--spacing-md);
     position: relative;
-    cursor: default;
+  }
+
+  .card-number {
+    position: absolute;
+    bottom: var(--spacing-xs);
+    right: var(--spacing-sm);
+    font-size: var(--typography-small-size);
+    color: var(--color-text-muted);
   }
 
   .card-1 {
-    background: var(--color-primary);
-    display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
-  }
-
-  .card-num {
-    position: absolute;
-    bottom: var(--spacing-xs);
-    right: 18px;
-    font-size: var(--typography-small-size);
-    color: var(--color-text-on-dark-muted);
-  }
-
-  .card-3, .card-4 {
-    background: var(--color-primary-subtle);
   }
 
   .chat-bmw-icon {
-    width: 36px;
-    height: 36px;
-    background: linear-gradient(135deg, #e040fb, #7c4dff, #2979ff);
+    width: 32px;
+    height: 32px;
     border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, #e53935, #1a6fd4);
     display: flex;
     align-items: center;
     justify-content: center;
+    margin-right: var(--spacing-sm);
+    flex-shrink: 0;
     font-size: 0.5rem;
     color: white;
     font-weight: 700;
-    flex-shrink: 0;
   }
 
   .card-label {
-    color: var(--color-text);
     font-size: var(--typography-body-size);
+    color: var(--color-text);
     font-weight: 600;
   }
 
-  .card-plus {
+  .shortcut-card {
+    align-items: center;
+  }
+
+  .plus-icon {
     color: var(--color-text);
     font-size: 1rem;
     margin-right: var(--spacing-xs);
+    font-weight: 300;
   }
 
-  /* CONNECT SECTION */
-  .connect-section {
-    background: var(--color-surface);
-    clip-path: var(--shapes-left-panel-clip-path);
-    padding: var(--spacing-md) var(--spacing-lg);
+  /* CONNECT PANEL */
+  .connect-panel {
+    background: var(--color-skewed-card-background);
+    border: 1px solid var(--color-skewed-card-border);
+    clip-path: polygon(18px 0, 100% 0, calc(100% - 18px) 100%, 0 100%);
+    padding: var(--spacing-md) var(--spacing-lg) var(--spacing-md) var(--spacing-lg);
     display: flex;
     align-items: center;
     gap: var(--spacing-lg);
-    min-height: 120px;
+    flex: 1;
   }
 
-  .connect-text {
+  .connect-title {
+    font-size: var(--typography-body-small-size);
     color: var(--color-text-secondary);
-    font-size: var(--typography-body-size);
+    margin-bottom: var(--spacing-md);
     white-space: nowrap;
   }
 
-  .phone-icon-container {
-    background: var(--color-primary);
-    width: 60px;
+  .phone-mockup {
+    width: 55px;
     height: 90px;
-    border-radius: var(--radius-lg);
+    background: linear-gradient(180deg, #1a4a7a, #0d2a47);
+    border-radius: var(--radius-md);
+    border: 1.5px solid var(--color-primary);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
   }
 
-  .connect-btn {
-    background: var(--color-primary);
-    clip-path: var(--shapes-card-clip-path);
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
+  .connect-button {
+    background: var(--color-button-connect);
+    color: var(--color-button-connect-text);
     padding: var(--spacing-sm) var(--spacing-lg);
-    color: var(--color-text);
+    clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
     font-size: var(--typography-body-size);
     font-weight: 600;
-    cursor: default;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
     white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .connect-content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .connect-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
   }
 
   /* MAP AREA */
   .map-area {
     flex: 1;
-    background: var(--color-map-background);
     position: relative;
+    background: var(--color-map-background);
     overflow: hidden;
   }
 
@@ -302,56 +349,53 @@
     height: 100%;
   }
 
-  /* Centre vehicle button */
   .centre-vehicle-btn {
     position: absolute;
-    bottom: 20px;
-    left: 20px;
+    bottom: var(--spacing-md);
+    right: 100px;
     background: var(--color-primary);
-    clip-path: polygon(6% 0%, 100% 0%, 94% 100%, 0% 100%);
+    clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+    padding: var(--spacing-sm) var(--spacing-lg);
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
-    padding: var(--spacing-sm) var(--spacing-lg);
-    color: var(--color-text);
     font-size: var(--typography-body-size);
+    color: var(--color-text);
     font-weight: 600;
   }
 
-  /* Assist View button */
   .assist-view-btn {
     position: absolute;
-    bottom: 20px;
-    right: 10px;
-    background: var(--color-primary-subtle);
-    clip-path: polygon(6% 0%, 100% 0%, 94% 100%, 0% 100%);
+    bottom: var(--spacing-md);
+    right: 0;
+    background: var(--color-surface);
+    clip-path: polygon(10px 0, 100% 0, calc(100% - 0px) 100%, 0 100%);
+    padding: var(--spacing-sm) var(--spacing-md);
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: var(--spacing-xs) var(--spacing-md);
-    color: var(--color-text);
     font-size: 0.55rem;
+    color: var(--color-text);
     font-weight: 600;
     letter-spacing: 0.05em;
-    min-width: 70px;
-    min-height: 40px;
+    line-height: 1.3;
+    text-align: center;
+    width: 70px;
   }
 
   /* BOTTOM BAR */
   .bottom-bar {
-    height: 56px;
+    height: var(--shapes-bottom-bar-height);
     background: var(--color-bottom-bar-background);
     display: flex;
     align-items: center;
-    flex-shrink: 0;
+    padding: 0 var(--spacing-sm);
     border-top: 1px solid var(--color-border-dark);
-    padding: 0 var(--spacing-md);
-    position: relative;
-    z-index: 10;
+    flex-shrink: 0;
+    gap: var(--spacing-sm);
   }
 
-  .bottom-divider {
+  .divider {
     width: 1px;
     height: 32px;
     background: var(--color-border);
@@ -361,94 +405,112 @@
   .ac-section {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
-    padding: 0 var(--spacing-md);
+    gap: var(--spacing-xs);
+    flex-shrink: 0;
   }
 
-  .ac-engine-icon {
-    color: var(--color-text-secondary);
+  .ac-control {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ac-top {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
   }
 
   .ac-minus, .ac-plus {
     color: var(--color-text-secondary);
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 300;
-  }
-
-  .ac-label-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    cursor: pointer;
     line-height: 1;
   }
 
-  .ac-off {
-    color: var(--color-text);
-    font-size: 0.85rem;
+  .ac-label {
+    font-size: var(--typography-body-size);
     font-weight: 700;
+    color: var(--color-text);
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 3px;
   }
 
-  .ac-indicator {
-    width: 16px;
-    height: 2px;
-    display: block;
-  }
-
-  .ac-status {
-    font-size: var(--typography-small-size);
-    color: var(--color-text-secondary);
+  .ac-sublabel {
+    font-size: 0.55rem;
+    color: var(--color-text-muted);
     letter-spacing: 0.05em;
-    white-space: nowrap;
+    line-height: 1;
+    text-align: center;
   }
 
-  .ac-bar {
-    width: 50px;
+  .temp-bar {
+    width: 60px;
     height: 2px;
-    background: linear-gradient(to right, #1a6fd4, #e53935);
-    border-radius: 2px;
+    background: var(--color-temperature-bar);
     margin-top: 2px;
   }
 
-  /* Center icons */
+  .ac-icon-section {
+    margin-right: 4px;
+  }
+
   .center-icons {
-    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: var(--spacing-lg);
+    flex: 1;
   }
 
-  .bottom-icon {
-    color: var(--color-text-secondary);
+  .center-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: default;
+    color: var(--color-text-secondary);
+    cursor: pointer;
   }
 
-  /* Warning triangle on map */
+  .dots-icon {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+  }
+
+  .dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--color-text-secondary);
+  }
+
+  /* Road warning triangle */
   .warning-triangle {
     position: absolute;
-    top: 20px;
+    top: 60px;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-40%);
   }
 
   /* Road number badge */
   .road-badge {
     position: absolute;
-    background: var(--color-warning-yellow);
-    color: #000;
+    top: 80px;
+    left: 40%;
+    background: var(--color-accent);
+    color: var(--color-text-dark);
     font-size: 0.65rem;
     font-weight: 700;
-    padding: 2px 5px;
-    border-radius: 2px;
-    top: 45%;
-    left: 20%;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
   }
+
+  .ac-fan-icon {
+    margin-left: 4px;
+  }
+
 </style>
 </head>
 <body>
@@ -456,50 +518,48 @@
 
   <!-- STATUS BAR -->
   <div class="status-bar">
-    <span style="color: var(--color-text-secondary); font-size: 0.75rem; font-style: italic;">i</span>
-    <span class="demo-mode">DEMO MODE</span>
-    <div class="status-right">
+    <div class="status-bar-left">
+      <svg width="10" height="10" viewBox="0 0 10 10"><text x="5" y="9" text-anchor="middle" fill="white" font-size="9" font-family="Arial">i</text></svg>
+    </div>
+    <div class="status-bar-center">DEMO MODE</div>
+    <div class="status-bar-right">
       <!-- muted icon -->
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-secondary)" stroke-width="2">
-        <line x1="1" y1="1" x2="23" y2="23"/>
-        <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/>
-        <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/>
-        <line x1="12" y1="19" x2="12" y2="23"/>
-        <line x1="8" y1="23" x2="16" y2="23"/>
+      <svg width="16" height="14" viewBox="0 0 16 14" fill="none">
+        <rect x="0" y="0" width="16" height="14" rx="2" stroke="white" stroke-width="1.2" fill="none"/>
+        <line x1="2" y1="2" x2="14" y2="12" stroke="white" stroke-width="1.2"/>
       </svg>
       <!-- bell icon -->
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-secondary)" stroke-width="2">
-        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="white">
+        <path d="M7 1C7 1 3 3 3 7v3l-1 1h10l-1-1V7C11 3 7 1 7 1z" stroke="white" stroke-width="0.8" fill="none"/>
+        <path d="M5.5 11.5 A1.5 1.5 0 0 0 8.5 11.5" stroke="white" stroke-width="0.8" fill="none"/>
       </svg>
-      <span style="color: var(--color-text); font-size: 0.75rem;">23 °c</span>
-      <!-- muted mic -->
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-secondary)" stroke-width="2">
-        <line x1="1" y1="1" x2="23" y2="23"/>
-        <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/>
+      <!-- temp -->
+      <span class="status-item">23 °C</span>
+      <!-- mute phone -->
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M3 3 L11 11" stroke="white" stroke-width="1.2"/>
+        <path d="M4 2 Q2 4 3 6 L5 8 Q3 9 4 11 Q6 13 8 11 L10 9 Q8 8 7 7" stroke="white" stroke-width="1" fill="none"/>
       </svg>
       <!-- bluetooth -->
-      <svg width="14" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-secondary)" stroke-width="2">
-        <polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/>
+      <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
+        <path d="M2 3.5 L8 8 L5 10.5 L5 1 L8 3.5 L2 8" stroke="white" stroke-width="1.2" fill="none"/>
       </svg>
       <!-- wifi -->
-      <svg width="18" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-secondary)" stroke-width="2">
-        <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
-        <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
-        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
-        <line x1="12" y1="20" x2="12.01" y2="20"/>
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+        <path d="M1 4 Q8 -1 15 4" stroke="white" stroke-width="1.2" fill="none"/>
+        <path d="M3 6.5 Q8 3 13 6.5" stroke="white" stroke-width="1.2" fill="none"/>
+        <path d="M5.5 9 Q8 7 10.5 9" stroke="white" stroke-width="1.2" fill="none"/>
+        <circle cx="8" cy="11" r="1" fill="white"/>
       </svg>
       <!-- signal bars -->
-      <svg width="16" height="14" viewBox="0 0 24 24" fill="var(--color-text-secondary)">
-        <rect x="1" y="16" width="4" height="6" rx="1"/>
-        <rect x="7" y="11" width="4" height="11" rx="1"/>
-        <rect x="13" y="6" width="4" height="16" rx="1"/>
-        <rect x="19" y="1" width="4" height="21" rx="1" fill="var(--color-text)"/>
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+        <rect x="0" y="8" width="3" height="4" fill="white"/>
+        <rect x="4.5" y="5" width="3" height="7" fill="white"/>
+        <rect x="9" y="2" width="3" height="10" fill="white" opacity="0.4"/>
+        <rect x="13.5" y="0" width="2.5" height="12" fill="white" opacity="0.3"/>
       </svg>
-      <!-- user avatar circle -->
-      <div style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#e57373,#ff8a65);flex-shrink:0;"></div>
-      <span class="time">11:31</span>
-      <span class="time-am">am</span>
+      <div class="avatar"></div>
+      <span class="time-display">11:31<span class="time-am">am</span></span>
     </div>
   </div>
 
@@ -508,289 +568,309 @@
 
     <!-- SIDEBAR -->
     <div class="sidebar">
-      <!-- Speed/green lines icon -->
-      <div class="sidebar-icon" style="margin-top: 8px;">
-        <svg width="32" height="20" viewBox="0 0 32 20">
-          <rect x="0" y="0" width="24" height="3" rx="1" fill="#00c853"/>
-          <rect x="0" y="7" width="20" height="3" rx="1" fill="#00c853"/>
-          <rect x="0" y="14" width="28" height="3" rx="1" fill="#00c853"/>
-          <!-- D letter -->
-          <text x="26" y="13" fill="#00c853" font-size="10" font-weight="bold">D</text>
-        </svg>
-      </div>
-      <!-- Car top-view icon -->
-      <div class="sidebar-icon" style="position:relative;">
-        <!-- Red triangle indicator -->
-        <div style="position:absolute;top:-2px;left:2px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid var(--color-error);"></div>
-        <svg width="36" height="44" viewBox="0 0 36 44">
-          <rect x="8" y="4" width="20" height="36" rx="4" fill="none" stroke="var(--color-text-secondary)" stroke-width="1.5"/>
-          <rect x="10" y="6" width="16" height="14" rx="2" fill="var(--color-primary-subtle)" stroke="var(--color-text-muted)" stroke-width="1"/>
-          <!-- door lines -->
-          <line x1="8" y1="22" x2="28" y2="22" stroke="var(--color-text-muted)" stroke-width="1"/>
-          <!-- wheels -->
-          <rect x="4" y="8" width="4" height="8" rx="2" fill="var(--color-text-muted)"/>
-          <rect x="28" y="8" width="4" height="8" rx="2" fill="var(--color-text-muted)"/>
-          <rect x="4" y="28" width="4" height="8" rx="2" fill="var(--color-text-muted)"/>
-          <rect x="28" y="28" width="4" height="8" rx="2" fill="var(--color-text-muted)"/>
-        </svg>
-      </div>
-      <!-- Settings/gear-like icon -->
       <div class="sidebar-icon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-secondary)" stroke-width="1.5">
-          <rect x="3" y="3" width="7" height="7" rx="1"/>
-          <rect x="14" y="3" width="7" height="7" rx="1"/>
-          <rect x="3" y="14" width="7" height="7" rx="1"/>
-          <rect x="14" y="14" width="7" height="7" rx="1"/>
+        <!-- green lines icon / menu -->
+        <svg width="30" height="22" viewBox="0 0 30 22" fill="none">
+          <rect x="0" y="0" width="24" height="3" rx="1" fill="#00c853"/>
+          <rect x="0" y="7" width="24" height="3" rx="1" fill="#00c853"/>
+          <rect x="0" y="14" width="24" height="3" rx="1" fill="#00c853"/>
+          <circle cx="26" cy="3" r="4" fill="#00c853"/>
+        </svg>
+      </div>
+
+      <!-- Car icon with door highlighted -->
+      <div class="sidebar-icon" style="margin-top: 20px;">
+        <svg width="38" height="42" viewBox="0 0 38 42" fill="none">
+          <!-- car body -->
+          <rect x="4" y="14" width="30" height="16" rx="3" fill="none" stroke="white" stroke-width="1.2"/>
+          <!-- roof -->
+          <path d="M8 14 Q10 6 14 5 L24 5 Q28 6 30 14" stroke="white" stroke-width="1.2" fill="none"/>
+          <!-- wheels -->
+          <circle cx="10" cy="30" r="4" stroke="white" stroke-width="1.2" fill="none"/>
+          <circle cx="28" cy="30" r="4" stroke="white" stroke-width="1.2" fill="none"/>
+          <!-- door highlight -->
+          <rect x="8" y="14" width="10" height="12" rx="1" fill="#e53935" opacity="0.6"/>
+          <!-- window -->
+          <path d="M9 14 L11 6 L22 6 L24 14" stroke="white" stroke-width="0.8" fill="none"/>
+        </svg>
+      </div>
+
+      <!-- settings icon -->
+      <div class="sidebar-icon" style="margin-top: 12px;">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <rect x="2" y="6" width="10" height="2.5" rx="1" fill="white"/>
+          <rect x="16" y="6" width="10" height="2.5" rx="1" fill="white"/>
+          <circle cx="14" cy="7.25" r="3" stroke="white" stroke-width="1.5" fill="none"/>
+          <rect x="2" y="14" width="10" height="2.5" rx="1" fill="white" opacity="0.5"/>
+          <rect x="16" y="14" width="10" height="2.5" rx="1" fill="white" opacity="0.5"/>
+          <circle cx="14" cy="15.25" r="3" stroke="white" stroke-width="1.5" fill="none" opacity="0.5"/>
+          <rect x="2" y="20" width="24" height="2.5" rx="1" fill="white" opacity="0.3"/>
         </svg>
       </div>
     </div>
 
-    <!-- BLUE ACCENT LINE -->
-    <div class="accent-line"></div>
-
-    <!-- LEFT PANEL -->
-    <div class="left-panel">
-
-      <!-- CARDS SECTION -->
-      <div class="cards-section">
-        <!-- Card 1: ChatBMW -->
-        <div class="card card-1" style="clip-path: polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%);">
-          <div class="chat-bmw-icon">
-            <svg width="20" height="20" viewBox="0 0 20 20">
-              <circle cx="10" cy="10" r="8" fill="none" stroke="white" stroke-width="1.5"/>
-              <text x="5" y="14" fill="white" font-size="8" font-weight="bold">C</text>
-            </svg>
-          </div>
-          <span class="card-label" style="margin-left: 6px;">ChatBMW</span>
-          <span class="card-num">1</span>
-        </div>
-        <!-- Card 2: Shortcut -->
-        <div class="card" style="background: var(--color-primary-subtle); clip-path: polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%); display:flex; align-items:center;">
-          <span style="color: var(--color-text); font-size: 1.1rem; margin-right: 4px;">+</span>
-          <span class="card-label">Shortcut</span>
-          <span class="card-num">2</span>
-        </div>
-        <!-- Card 3 -->
-        <div class="card card-3" style="clip-path: polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%);">
-          <span class="card-num">3</span>
-        </div>
-        <!-- Card 4 -->
-        <div class="card card-4" style="clip-path: polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%);">
-          <span class="card-num">4</span>
-        </div>
-      </div>
-
-      <!-- CONNECT SECTION -->
-      <div class="connect-section">
-        <div style="display:flex; flex-direction:column; gap: 8px; flex:1;">
-          <span class="connect-text">Connect to MmiLab BMW</span>
-          <div style="display:flex; align-items:center; gap: var(--spacing-lg); margin-top: 4px;">
-            <!-- Phone illustration -->
-            <div class="phone-icon-container">
-              <svg width="30" height="55" viewBox="0 0 30 55">
-                <rect x="2" y="2" width="26" height="51" rx="4" fill="var(--color-primary-subtle)" stroke="var(--color-primary-light)" stroke-width="1.5"/>
-                <rect x="8" y="6" width="14" height="24" rx="1" fill="var(--color-background-light)"/>
-                <circle cx="15" cy="48" r="2" fill="var(--color-text-muted)"/>
+    <!-- CONTENT PANEL -->
+    <div class="content-panel">
+      <!-- Cards Area -->
+      <div class="cards-area">
+        <div class="cards-grid">
+          <!-- Card 1: ChatBMW -->
+          <div class="card card-1">
+            <div class="chat-bmw-icon">
+              <svg width="20" height="16" viewBox="0 0 20 16" fill="none">
+                <rect x="1" y="1" width="18" height="14" rx="3" fill="white" opacity="0.2"/>
+                <text x="3" y="11" font-size="7" fill="white" font-weight="700" font-family="Arial">Chat</text>
               </svg>
             </div>
-            <!-- Connect button -->
-            <div class="connect-btn">
-              <span style="font-size: 1rem; font-weight: 300;">+</span>
-              <span>Connect</span>
-            </div>
+            <span class="card-label">ChatBMW</span>
+            <span class="card-number">1</span>
+          </div>
+          <!-- Card 2: Shortcut -->
+          <div class="card shortcut-card">
+            <span class="plus-icon">+</span>
+            <span class="card-label">Shortcut</span>
+            <span class="card-number">2</span>
+          </div>
+          <!-- Card 3: empty -->
+          <div class="card">
+            <span class="card-number">3</span>
+          </div>
+          <!-- Card 4: empty -->
+          <div class="card">
+            <span class="card-number">4</span>
           </div>
         </div>
       </div>
 
+      <!-- Connect Panel -->
+      <div class="connect-panel">
+        <div class="connect-content">
+          <div class="connect-title">Connect to MmiLab BMW</div>
+          <div class="connect-actions">
+            <div class="phone-mockup">
+              <svg width="30" height="60" viewBox="0 0 30 60" fill="none">
+                <rect x="2" y="2" width="26" height="56" rx="5" stroke="#1a6fd4" stroke-width="1.5" fill="rgba(13,42,71,0.5)"/>
+                <rect x="10" y="4" width="10" height="2" rx="1" fill="#1a6fd4" opacity="0.7"/>
+                <circle cx="15" cy="54" r="2.5" stroke="#1a6fd4" stroke-width="1" fill="none"/>
+              </svg>
+            </div>
+            <div class="connect-button">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="white">
+                <line x1="6" y1="1" x2="6" y2="11" stroke="white" stroke-width="1.8"/>
+                <line x1="1" y1="6" x2="11" y2="6" stroke="white" stroke-width="1.8"/>
+              </svg>
+              Connect
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- MAP AREA -->
     <div class="map-area">
-      <!-- Map SVG -->
-      <svg class="map-svg" viewBox="0 0 680 500" xmlns="http://www.w3.org/2000/svg">
+      <svg class="map-svg" viewBox="0 0 720 520" fill="none" xmlns="http://www.w3.org/2000/svg">
         <!-- Background -->
-        <rect width="680" height="500" fill="#0d2535"/>
+        <rect width="720" height="520" fill="#06243d"/>
 
-        <!-- Dark area (trees/grass) -->
-        <rect x="0" y="0" width="680" height="500" fill="#0a1e2a"/>
+        <!-- Green areas -->
+        <rect x="0" y="0" width="200" height="200" fill="#0a2e1a" opacity="0.5"/>
+        <rect x="500" y="0" width="220" height="150" fill="#0a2e1a" opacity="0.4"/>
+        <rect x="0" y="300" width="150" height="220" fill="#0a2e1a" opacity="0.3"/>
 
-        <!-- Green/dark areas -->
-        <rect x="0" y="200" width="300" height="300" fill="#0d2030" opacity="0.5"/>
-        <rect x="300" y="300" width="380" height="200" fill="#0d2030" opacity="0.5"/>
+        <!-- Main roads - large diagonal roads -->
+        <!-- Top right area roads -->
+        <path d="M400 0 L480 0 L720 200 L720 280 L600 120" stroke="#c8d8e8" stroke-width="18" fill="none" stroke-linecap="round"/>
+        <path d="M500 0 L720 180" stroke="#c8d8e8" stroke-width="14" fill="none"/>
+        <path d="M600 0 L720 100" stroke="#c8d8e8" stroke-width="10" fill="none"/>
 
-        <!-- Main roads - light colored -->
-        <!-- Horizontal main road -->
-        <path d="M 0 280 Q 150 260 300 240 L 680 200" stroke="#c0cdd5" stroke-width="22" fill="none" stroke-linecap="round"/>
-        <!-- Vertical road upper -->
-        <path d="M 520 0 L 490 500" stroke="#b0bec5" stroke-width="18" fill="none"/>
-        <!-- Diagonal road top-right -->
-        <path d="M 600 0 Q 620 100 580 250 L 560 500" stroke="#b0bec5" stroke-width="14" fill="none"/>
-        <!-- Road top-right going off -->
-        <path d="M 680 80 L 530 250" stroke="#b0bec5" stroke-width="18" fill="none"/>
-        <!-- Road going right from intersection -->
-        <path d="M 500 200 L 680 160" stroke="#b0bec5" stroke-width="16" fill="none"/>
-        <!-- Inner roads -->
-        <path d="M 300 240 Q 380 300 450 350 L 480 500" stroke="#8fa8b8" stroke-width="12" fill="none"/>
-        <path d="M 350 280 L 350 500" stroke="#8fa8b8" stroke-width="10" fill="none"/>
-        <path d="M 400 310 L 680 280" stroke="#8fa8b8" stroke-width="10" fill="none"/>
-        <path d="M 440 350 L 680 330" stroke="#7a9aae" stroke-width="8" fill="none"/>
-        <!-- Small roads -->
-        <path d="M 480 380 L 600 370" stroke="#7a9aae" stroke-width="7" fill="none"/>
-        <path d="M 480 420 L 650 400" stroke="#7a9aae" stroke-width="7" fill="none"/>
-        <path d="M 350 380 L 450 390" stroke="#7a9aae" stroke-width="6" fill="none"/>
+        <!-- Horizontal main road across middle -->
+        <path d="M0 220 L720 220" stroke="#c8d8e8" stroke-width="20" fill="none"/>
+        <path d="M0 250 L720 250" stroke="#c8d8e8" stroke-width="6" fill="none" opacity="0.5"/>
 
-        <!-- Road going bottom left -->
-        <path d="M 200 240 L 0 320" stroke="#b0bec5" stroke-width="18" fill="none"/>
+        <!-- Vertical road left side -->
+        <path d="M180 0 L180 520" stroke="#c8d8e8" stroke-width="16" fill="none"/>
 
-        <!-- Buildings - blue -->
-        <rect x="320" y="300" width="60" height="40" rx="2" fill="#1565c0" opacity="0.9"/>
-        <rect x="340" y="340" width="80" height="55" rx="2" fill="#1a6fd4" opacity="0.8"/>
-        <rect x="290" y="360" width="45" height="35" rx="2" fill="#1565c0" opacity="0.85"/>
-        <rect x="370" y="310" width="30" height="25" rx="2" fill="#1e7fe8" opacity="0.7"/>
-        <rect x="410" y="340" width="50" height="40" rx="2" fill="#1565c0" opacity="0.8"/>
+        <!-- Curved road upper area -->
+        <path d="M300 0 Q350 80 400 130 Q450 180 500 220" stroke="#c8d8e8" stroke-width="14" fill="none"/>
+        <path d="M350 0 Q380 60 410 100 Q450 150 490 220" stroke="#c8d8e8" stroke-width="10" fill="none"/>
 
-        <!-- roundabout / intersection area -->
-        <circle cx="500" cy="210" r="25" fill="none" stroke="#b0bec5" stroke-width="3"/>
-        <circle cx="500" cy="210" r="12" fill="#0d2535"/>
+        <!-- Lower roads network -->
+        <path d="M0 350 L720 350" stroke="#c8d8e8" stroke-width="14" fill="none"/>
+        <path d="M0 420 L720 420" stroke="#c8d8e8" stroke-width="10" fill="none" opacity="0.7"/>
 
-        <!-- White road markings/dashes -->
-        <line x1="150" y1="265" x2="170" y2="263" stroke="white" stroke-width="2" opacity="0.6"/>
-        <line x1="200" y1="259" x2="220" y2="257" stroke="white" stroke-width="2" opacity="0.6"/>
-        <line x1="250" y1="253" x2="270" y2="251" stroke="white" stroke-width="2" opacity="0.6"/>
+        <path d="M280 220 L280 520" stroke="#c8d8e8" stroke-width="12" fill="none"/>
+        <path d="M420 220 L420 520" stroke="#c8d8e8" stroke-width="10" fill="none"/>
+        <path d="M560 220 L560 520" stroke="#c8d8e8" stroke-width="10" fill="none" opacity="0.7"/>
+
+        <!-- Cross streets -->
+        <path d="M0 300 L280 300" stroke="#c8d8e8" stroke-width="8" fill="none" opacity="0.8"/>
+        <path d="M420 300 L720 300" stroke="#c8d8e8" stroke-width="8" fill="none" opacity="0.8"/>
+        <path d="M0 480 L720 480" stroke="#c8d8e8" stroke-width="8" fill="none" opacity="0.6"/>
+
+        <!-- Small connector roads -->
+        <path d="M180 350 Q230 350 280 350" stroke="#c8d8e8" stroke-width="8" fill="none"/>
+        <path d="M420 350 L560 350" stroke="#c8d8e8" stroke-width="8" fill="none"/>
+
+        <!-- Roundabout/junction area -->
+        <circle cx="280" cy="220" r="25" stroke="#c8d8e8" stroke-width="8" fill="#06243d"/>
+        <circle cx="420" cy="350" r="20" stroke="#c8d8e8" stroke-width="6" fill="#06243d"/>
+
+        <!-- Buildings (blue) -->
+        <rect x="310" y="280" width="80" height="55" rx="2" fill="#1a5fa8" opacity="0.85"/>
+        <rect x="330" y="260" width="50" height="30" rx="2" fill="#1a5fa8" opacity="0.7"/>
+        <rect x="360" y="330" width="40" height="35" rx="2" fill="#1a5fa8" opacity="0.8"/>
+        <rect x="440" y="270" width="60" height="45" rx="2" fill="#1a5fa8" opacity="0.6"/>
+        <rect x="460" y="310" width="35" height="50" rx="2" fill="#1a5fa8" opacity="0.7"/>
+        <rect x="320" y="380" width="70" height="40" rx="2" fill="#1a5fa8" opacity="0.5"/>
+        <rect x="200" y="270" width="55" height="40" rx="2" fill="#1a5fa8" opacity="0.4"/>
+        <rect x="480" y="380" width="50" height="40" rx="2" fill="#1a5fa8" opacity="0.5"/>
+        <rect x="600" y="300" width="80" height="60" rx="2" fill="#1a5fa8" opacity="0.4"/>
+        <rect x="100" y="280" width="60" height="50" rx="2" fill="#1a5fa8" opacity="0.3"/>
+        <rect x="50" y="350" width="100" height="50" rx="2" fill="#1a5fa8" opacity="0.3"/>
+
+        <!-- Warning triangle -->
+        <g transform="translate(355, 70)">
+          <polygon points="30,5 55,45 5,45" fill="white" stroke="#aaa" stroke-width="1"/>
+          <text x="30" y="38" text-anchor="middle" font-size="20" font-weight="700" fill="#333">!</text>
+        </g>
+
+        <!-- Road number badge 472 -->
+        <rect x="300" y="190" width="42" height="20" rx="3" fill="#ffd700"/>
+        <text x="321" y="204" text-anchor="middle" font-size="11" font-weight="700" fill="#04101e" font-family="Arial">472</text>
       </svg>
 
-      <!-- Warning triangle -->
-      <div class="warning-triangle">
-        <svg width="40" height="36" viewBox="0 0 40 36">
-          <polygon points="20,2 38,34 2,34" fill="white" stroke="white" stroke-width="1"/>
-          <polygon points="20,6 34,32 6,32" fill="white"/>
-          <text x="16" y="28" fill="black" font-size="16" font-weight="bold">!</text>
-        </svg>
-      </div>
-
-      <!-- Road number badge -->
-      <div class="road-badge">472</div>
-
-      <!-- Centre vehicle button -->
+      <!-- Centre Vehicle Button -->
       <div class="centre-vehicle-btn">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-          <polygon points="12,2 19,21 12,17 5,21"/>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="white">
+          <polygon points="2,14 8,2 14,14 8,11" fill="white"/>
         </svg>
-        <span>Centre vehicle</span>
+        Centre vehicle
       </div>
 
-      <!-- Assist View button -->
+      <!-- ASSIST VIEW Button -->
       <div class="assist-view-btn">
-        <span style="font-size: 0.55rem; letter-spacing: 0.08em; text-align:center; line-height:1.3;">ASSIST<br>VIEW</span>
+        ASSIST<br>VIEW
       </div>
-
     </div>
-
   </div>
 
   <!-- BOTTOM BAR -->
   <div class="bottom-bar">
     <!-- Left AC section -->
+    <!-- Engine/AC icon -->
     <div class="ac-section">
-      <!-- Engine icon -->
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-secondary)" stroke-width="1.5">
-        <rect x="2" y="7" width="14" height="10" rx="1"/>
-        <path d="M16 9h2l2 2-2 2h-2"/>
-        <path d="M6 7V4"/>
-        <path d="M10 7V4"/>
-        <path d="M2 13h2"/>
+      <svg width="22" height="20" viewBox="0 0 22 20" fill="none">
+        <circle cx="11" cy="10" r="8" stroke="white" stroke-width="1.2" fill="none"/>
+        <path d="M6 10 L16 10 M11 5 L11 15 M7.5 6.5 L14.5 13.5 M14.5 6.5 L7.5 13.5" stroke="white" stroke-width="1" opacity="0.7"/>
       </svg>
+    </div>
+
+    <div class="ac-section">
       <span class="ac-minus">−</span>
-      <div class="ac-label-group">
-        <div class="ac-off">
-          <span>OFF</span>
-          <svg width="14" height="10" viewBox="0 0 24 18" fill="none" stroke="var(--color-text-secondary)" stroke-width="2">
-            <path d="M4 9 Q8 3 12 9 Q16 15 20 9"/>
-          </svg>
+      <div class="ac-control">
+        <div class="ac-top">
+          <span class="ac-label">
+            OFF
+            <svg width="14" height="12" viewBox="0 0 14 12" fill="white">
+              <path d="M2 6 Q4 2 7 2 Q10 2 12 6" stroke="white" stroke-width="1.2" fill="none"/>
+              <path d="M4 10 Q7 6 10 10" stroke="white" stroke-width="1.2" fill="none"/>
+              <line x1="12" y1="2" x2="2" y2="10" stroke="white" stroke-width="1" opacity="0.6"/>
+            </svg>
+          </span>
         </div>
-        <div class="ac-bar"></div>
-        <span class="ac-status">A/C OFF</span>
+        <div class="temp-bar"></div>
+        <div class="ac-sublabel">A/C OFF</div>
       </div>
       <span class="ac-plus">+</span>
     </div>
 
-    <div class="bottom-divider"></div>
+    <div class="divider"></div>
 
-    <!-- Center icons -->
+    <!-- Center Icons -->
     <div class="center-icons">
       <!-- Music note -->
-      <div class="bottom-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-secondary)" stroke-width="2">
-          <path d="M9 18V5l12-2v13"/>
-          <circle cx="6" cy="18" r="3"/>
-          <circle cx="18" cy="16" r="3"/>
+      <div class="center-icon">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M6 14 L6 5 L14 3 L14 12" stroke="#a8c0d8" stroke-width="1.5" fill="none"/>
+          <circle cx="5" cy="14" r="2.5" stroke="#a8c0d8" stroke-width="1.5" fill="none"/>
+          <circle cx="13" cy="12" r="2.5" stroke="#a8c0d8" stroke-width="1.5" fill="none"/>
         </svg>
       </div>
-      <!-- Navigation/arrow -->
-      <div class="bottom-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--color-text-secondary)">
-          <polygon points="12,2 22,22 12,18 2,22"/>
+
+      <!-- Navigation arrow -->
+      <div class="center-icon">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <polygon points="9,2 16,16 9,12 2,16" stroke="#a8c0d8" stroke-width="1.5" fill="none"/>
         </svg>
       </div>
+
       <!-- Turn arrow -->
-      <div class="bottom-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-secondary)" stroke-width="2">
-          <path d="M9 14l-4-4 4-4"/>
-          <path d="M5 10h11a4 4 0 0 1 0 8h-1"/>
+      <div class="center-icon">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M9 14 L9 7 Q9 3 13 3" stroke="#a8c0d8" stroke-width="1.5" fill="none"/>
+          <polyline points="10,1 13,3 10,5" stroke="#a8c0d8" stroke-width="1.5" fill="none"/>
         </svg>
       </div>
-      <!-- Grid/apps -->
-      <div class="bottom-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-secondary)" stroke-width="2">
-          <rect x="3" y="3" width="7" height="7"/>
-          <rect x="14" y="3" width="7" height="7"/>
-          <rect x="3" y="14" width="7" height="7"/>
-          <rect x="14" y="14" width="7" height="7"/>
+
+      <!-- Grid -->
+      <div class="center-icon">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <rect x="2" y="2" width="6" height="6" stroke="#a8c0d8" stroke-width="1.2" fill="none"/>
+          <rect x="10" y="2" width="6" height="6" stroke="#a8c0d8" stroke-width="1.2" fill="none"/>
+          <rect x="2" y="10" width="6" height="6" stroke="#a8c0d8" stroke-width="1.2" fill="none"/>
+          <rect x="10" y="10" width="6" height="6" stroke="#a8c0d8" stroke-width="1.2" fill="none"/>
         </svg>
       </div>
+
       <!-- Fan -->
-      <div class="bottom-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-secondary)" stroke-width="2">
-          <circle cx="12" cy="12" r="2"/>
-          <path d="M12 2a4 4 0 0 1 4 4c0 2-4 4-4 4s-4-2-4-4a4 4 0 0 1 4-4z"/>
-          <path d="M22 12a4 4 0 0 1-4 4c-2 0-4-4-4-4s2-4 4-4a4 4 0 0 1 4 4z"/>
-          <path d="M12 22a4 4 0 0 1-4-4c0-2 4-4 4-4s4 2 4 4a4 4 0 0 1-4 4z"/>
-          <path d="M2 12a4 4 0 0 1 4-4c2 0 4 4 4 4s-2 4-4 4a4 4 0 0 1-4-4z"/>
+      <div class="center-icon">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <circle cx="9" cy="9" r="2" stroke="#a8c0d8" stroke-width="1.2" fill="none"/>
+          <path d="M9 7 Q9 2 6 2 Q6 6 9 7" stroke="#a8c0d8" stroke-width="1.2" fill="none"/>
+          <path d="M11 9 Q16 9 16 6 Q12 6 11 9" stroke="#a8c0d8" stroke-width="1.2" fill="none"/>
+          <path d="M9 11 Q9 16 12 16 Q12 12 9 11" stroke="#a8c0d8" stroke-width="1.2" fill="none"/>
+          <path d="M7 9 Q2 9 2 12 Q6 12 7 9" stroke="#a8c0d8" stroke-width="1.2" fill="none"/>
         </svg>
       </div>
+
       <!-- Car -->
-      <div class="bottom-icon">
-        <svg width="22" height="16" viewBox="0 0 32 20" fill="none" stroke="var(--color-text-secondary)" stroke-width="1.5">
-          <path d="M5 12 L8 6 L24 6 L27 12 Z"/>
-          <rect x="2" y="12" width="28" height="6" rx="2"/>
-          <circle cx="8" cy="18" r="2" fill="var(--color-text-secondary)"/>
-          <circle cx="24" cy="18" r="2" fill="var(--color-text-secondary)"/>
+      <div class="center-icon">
+        <svg width="20" height="16" viewBox="0 0 20 16" fill="none">
+          <path d="M3 10 L3 13 M17 10 L17 13" stroke="#a8c0d8" stroke-width="1.2"/>
+          <rect x="1" y="8" width="18" height="5" rx="1.5" stroke="#a8c0d8" stroke-width="1.2" fill="none"/>
+          <path d="M3 8 Q4 4 6 3 L14 3 Q16 4 17 8" stroke="#a8c0d8" stroke-width="1.2" fill="none"/>
+          <circle cx="5" cy="13" r="2" stroke="#a8c0d8" stroke-width="1.2" fill="none"/>
+          <circle cx="15" cy="13" r="2" stroke="#a8c0d8" stroke-width="1.2" fill="none"/>
         </svg>
       </div>
-      <!-- Dots/more -->
-      <div class="bottom-icon">
-        <svg width="24" height="8" viewBox="0 0 32 8">
-          <rect x="0" y="2" width="8" height="4" rx="1" fill="var(--color-text-secondary)"/>
-          <rect x="12" y="2" width="8" height="4" rx="1" fill="var(--color-text-secondary)"/>
-          <rect x="24" y="2" width="8" height="4" rx="1" fill="var(--color-text-secondary)"/>
+
+      <!-- Dots (three horizontal lines/dots) -->
+      <div class="center-icon">
+        <svg width="20" height="8" viewBox="0 0 20 8" fill="none">
+          <circle cx="3" cy="4" r="2" fill="#a8c0d8"/>
+          <circle cx="10" cy="4" r="2" fill="#a8c0d8"/>
+          <circle cx="17" cy="4" r="2" fill="#a8c0d8"/>
         </svg>
       </div>
     </div>
 
-    <div class="bottom-divider"></div>
+    <div class="divider"></div>
 
     <!-- Right AC section -->
     <div class="ac-section">
       <span class="ac-minus">−</span>
-      <div class="ac-label-group">
-        <div class="ac-off">
-          <span>OFF</span>
-          <svg width="14" height="10" viewBox="0 0 24 18" fill="none" stroke="var(--color-text-secondary)" stroke-width="2">
-            <path d="M4 9 Q8 15 12 9 Q16 3 20 9"/>
-          </svg>
+      <div class="ac-control">
+        <div class="ac-top">
+          <span class="ac-label">
+            OFF
+            <svg width="14" height="12" viewBox="0 0 14 12" fill="white">
+              <path d="M1 9 Q4 4 7 4 Q10 4 13 9" stroke="white" stroke-width="1.2" fill="none"/>
+              <path d="M4 11 Q7 8 10 11" stroke="white" stroke-width="1.2" fill="none"/>
+            </svg>
+          </span>
         </div>
-        <div class="ac-bar"></div>
-        <span class="ac-status">A/C OFF</span>
+        <div class="temp-bar"></div>
+        <div class="ac-sublabel">A/C OFF</div>
       </div>
       <span class="ac-plus">+</span>
     </div>

@@ -3,36 +3,42 @@
   /* Colors */
   --color-primary: #1a6fd4;
   --color-primary-hover: #155bb0;
-  --color-primary-light: #2a85f0;
-  --color-primary-subtle: #0d2a4d;
-  --color-background: #050d1a;
-  --color-background-light: #0a1628;
-  --color-surface: #0f1e35;
+  --color-primary-light: #2a7fe4;
+  --color-primary-subtle: #0d3a6e;
+  --color-background: #04101e;
+  --color-background-light: #0a1f35;
+  --color-surface: #0d2a47;
   --color-text: #ffffff;
-  --color-text-dark: #0a1628;
-  --color-text-secondary: #a0b8d8;
-  --color-text-muted: #5a7a99;
+  --color-text-dark: #04101e;
+  --color-text-secondary: #b0c4de;
+  --color-text-muted: #6a8aaa;
   --color-text-on-dark: #ffffff;
-  --color-text-on-dark-secondary: #b0c8e0;
-  --color-text-on-dark-muted: #506880;
-  --color-accent: #1e7fe8;
-  --color-border: #1a3a5c;
-  --color-border-dark: #0d2040;
-  --color-focus-ring: #1a6fd4;
+  --color-text-on-dark-secondary: #a8c0d8;
+  --color-text-on-dark-muted: #5a7a96;
+  --color-accent: #ffd700;
+  --color-border: #1e4a7a;
+  --color-border-dark: #0a2540;
+  --color-focus-ring: #2a7fe4;
   --color-success: #00c853;
   --color-error: #e53935;
-  --color-overlay: rgba(5, 13, 26, 0.75);
+  --color-overlay: rgba(4, 16, 30, 0.75);
   --color-shadow: rgba(0, 0, 0, 0.6);
   --color-shadow-strong: rgba(0, 0, 0, 0.85);
-  --color-background-gradient: linear-gradient(180deg, #0a1628 0%, #050d1a 100%);
-  --color-panel-gradient: linear-gradient(180deg, #122040 0%, #0a1830 100%);
-  --color-accent-glow: rgba(26, 111, 212, 0.4);
-  --color-map-background: #0d2535;
-  --color-map-road: #b0bec5;
-  --color-map-building: #1565c0;
-  --color-status-bar-background: #050d1a;
-  --color-bottom-bar-background: #07101e;
-  --color-warning-yellow: #f9a825;
+  --color-background-gradient: linear-gradient(180deg, #04101e 0%, #081828 50%, #04101e 100%);
+  --color-surface-gradient: linear-gradient(135deg, #0d2a47 0%, #0a1f35 100%);
+  --color-accent-blue: #3a8ef6;
+  --color-map-background: #06243d;
+  --color-map-road: #c8d8e8;
+  --color-map-building: #1a5fa8;
+  --color-status-bar-text: #ffffff;
+  --color-button-connect: #1a6fd4;
+  --color-button-connect-text: #ffffff;
+  --color-panel-background: rgba(13, 42, 71, 0.92);
+  --color-skewed-card-background: rgba(15, 50, 90, 0.88);
+  --color-skewed-card-border: #1e5a9a;
+  --color-bottom-bar-background: rgba(4, 16, 30, 0.95);
+  --color-ac-off-indicator: #3a5a7a;
+  --color-temperature-bar: linear-gradient(90deg, #1a6fd4 0%, #e53935 100%);
 
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -41,54 +47,54 @@
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
   --spacing-xxl: 3rem;
-  --spacing-section: 4rem;
+  --spacing-section: 2.5rem;
   --spacing-touch-target: 3rem;
 
   /* Typography */
   --typography-heading1-size: 1.5rem;
-  --typography-heading1-size-desktop: 2rem;
+  --typography-heading1-size-desktop: 1.75rem;
   --typography-heading1-weight: 700;
-  --typography-heading1-family: 'BMWTypeNext', 'Arial', Helvetica, sans-serif;
+  --typography-heading1-family: 'BMW Group', 'Arial', 'Helvetica', sans-serif;
   --typography-heading1-line-height: 1.2;
   --typography-heading1-line-height-desktop: 1.2;
   --typography-heading1-letter-spacing: 0.02em;
   --typography-heading2-size: 1.25rem;
-  --typography-heading2-size-desktop: 1.5rem;
+  --typography-heading2-size-desktop: 1.375rem;
   --typography-heading2-weight: 600;
-  --typography-heading2-family: 'BMWTypeNext', 'Arial', Helvetica, sans-serif;
+  --typography-heading2-family: 'BMW Group', 'Arial', 'Helvetica', sans-serif;
   --typography-heading2-line-height: 1.3;
   --typography-heading2-line-height-desktop: 1.3;
   --typography-heading2-letter-spacing: 0.01em;
   --typography-heading3-size: 1rem;
   --typography-heading3-size-desktop: 1.125rem;
   --typography-heading3-weight: 600;
-  --typography-heading3-family: 'BMWTypeNext', 'Arial', Helvetica, sans-serif;
+  --typography-heading3-family: 'BMW Group', 'Arial', 'Helvetica', sans-serif;
   --typography-heading3-line-height: 1.4;
   --typography-heading3-line-height-desktop: 1.4;
   --typography-heading3-letter-spacing: 0.01em;
   --typography-heading-size: 1.25rem;
   --typography-heading-weight: 700;
-  --typography-heading-family: 'BMWTypeNext', 'Arial', Helvetica, sans-serif;
+  --typography-heading-family: 'BMW Group', 'Arial', 'Helvetica', sans-serif;
   --typography-heading-line-height: 1.3;
   --typography-subheading-size: 0.875rem;
   --typography-subheading-weight: 600;
-  --typography-subheading-family: 'BMWTypeNext', 'Arial', Helvetica, sans-serif;
+  --typography-subheading-family: 'BMW Group', 'Arial', 'Helvetica', sans-serif;
   --typography-subheading-line-height: 1.4;
   --typography-body-size: 0.875rem;
   --typography-body-weight: 400;
-  --typography-body-family: 'BMWTypeNext', 'Arial', Helvetica, sans-serif;
+  --typography-body-family: 'BMW Group', 'Arial', 'Helvetica', sans-serif;
   --typography-body-line-height: 1.5;
   --typography-body-small-size: 0.75rem;
   --typography-body-small-weight: 400;
-  --typography-body-small-family: 'BMWTypeNext', 'Arial', Helvetica, sans-serif;
+  --typography-body-small-family: 'BMW Group', 'Arial', 'Helvetica', sans-serif;
   --typography-body-small-line-height: 1.5;
   --typography-small-size: 0.625rem;
   --typography-small-weight: 400;
-  --typography-small-family: 'BMWTypeNext', 'Arial', Helvetica, sans-serif;
+  --typography-small-family: 'BMW Group', 'Arial', 'Helvetica', sans-serif;
   --typography-small-line-height: 1.4;
   --typography-label-size: 0.6875rem;
   --typography-label-weight: 500;
-  --typography-label-family: 'BMWTypeNext', 'Arial', Helvetica, sans-serif;
+  --typography-label-family: 'BMW Group', 'Arial', 'Helvetica', sans-serif;
   --typography-label-line-height: 1.3;
   --typography-label-letter-spacing: 0.05em;
 
@@ -111,10 +117,10 @@
   /* Shadows */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
   --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.7);
-  --shadow-focus: 0 0 0 2px rgba(26, 111, 212, 0.8);
-  --shadow-focus-inset: inset 0 0 0 2px rgba(26, 111, 212, 0.8);
-  --shadow-glow: 0 0 16px rgba(26, 111, 212, 0.5);
-  --shadow-panel-depth: 0 8px 32px rgba(0, 0, 0, 0.8);
+  --shadow-focus: 0 0 0 2px #2a7fe4;
+  --shadow-focus-inset: inset 0 0 0 2px #2a7fe4;
+  --shadow-glow: 0 0 16px rgba(26, 111, 212, 0.6);
+  --shadow-panel-glow: 0 8px 32px rgba(0, 0, 0, 0.8);
 
   /* Transitions */
   --transition-fast: 0.15s ease;
@@ -130,7 +136,9 @@
 
   /* Shapes */
   --shapes-card-skew-angle: -6deg;
-  --shapes-card-clip-path: polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%);
+  --shapes-card-clip-path: polygon(6% 0%, 100% 0%, 94% 100%, 0% 100%);
   --shapes-panel-geometry: trapezoid;
-  --shapes-left-panel-clip-path: polygon(0% 0%, 100% 0%, 94% 100%, 0% 100%);
+  --shapes-skewed-panel-transform: skewX(-6deg);
+  --shapes-bottom-bar-height: 3.5rem;
+  --shapes-status-bar-height: 2.5rem;
 }

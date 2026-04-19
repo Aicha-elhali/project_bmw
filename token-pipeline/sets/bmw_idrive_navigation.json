@@ -2,36 +2,42 @@
   "colors": {
     "primary": "#1a6fd4",
     "primaryHover": "#155bb0",
-    "primaryLight": "#2a85f0",
-    "primarySubtle": "#0d2a4d",
-    "background": "#050d1a",
-    "backgroundLight": "#0a1628",
-    "surface": "#0f1e35",
+    "primaryLight": "#2a7fe4",
+    "primarySubtle": "#0d3a6e",
+    "background": "#04101e",
+    "backgroundLight": "#0a1f35",
+    "surface": "#0d2a47",
     "text": "#ffffff",
-    "textDark": "#0a1628",
-    "textSecondary": "#a0b8d8",
-    "textMuted": "#5a7a99",
+    "textDark": "#04101e",
+    "textSecondary": "#b0c4de",
+    "textMuted": "#6a8aaa",
     "textOnDark": "#ffffff",
-    "textOnDarkSecondary": "#b0c8e0",
-    "textOnDarkMuted": "#506880",
-    "accent": "#1e7fe8",
-    "border": "#1a3a5c",
-    "borderDark": "#0d2040",
-    "focusRing": "#1a6fd4",
+    "textOnDarkSecondary": "#a8c0d8",
+    "textOnDarkMuted": "#5a7a96",
+    "accent": "#ffd700",
+    "border": "#1e4a7a",
+    "borderDark": "#0a2540",
+    "focusRing": "#2a7fe4",
     "success": "#00c853",
     "error": "#e53935",
-    "overlay": "rgba(5, 13, 26, 0.75)",
+    "overlay": "rgba(4, 16, 30, 0.75)",
     "shadow": "rgba(0, 0, 0, 0.6)",
     "shadowStrong": "rgba(0, 0, 0, 0.85)",
-    "backgroundGradient": "linear-gradient(180deg, #0a1628 0%, #050d1a 100%)",
-    "panelGradient": "linear-gradient(180deg, #122040 0%, #0a1830 100%)",
-    "accentGlow": "rgba(26, 111, 212, 0.4)",
-    "mapBackground": "#0d2535",
-    "mapRoad": "#b0bec5",
-    "mapBuilding": "#1565c0",
-    "statusBarBackground": "#050d1a",
-    "bottomBarBackground": "#07101e",
-    "warningYellow": "#f9a825"
+    "backgroundGradient": "linear-gradient(180deg, #04101e 0%, #081828 50%, #04101e 100%)",
+    "surfaceGradient": "linear-gradient(135deg, #0d2a47 0%, #0a1f35 100%)",
+    "accentBlue": "#3a8ef6",
+    "mapBackground": "#06243d",
+    "mapRoad": "#c8d8e8",
+    "mapBuilding": "#1a5fa8",
+    "statusBarText": "#ffffff",
+    "buttonConnect": "#1a6fd4",
+    "buttonConnectText": "#ffffff",
+    "panelBackground": "rgba(13, 42, 71, 0.92)",
+    "skewedCardBackground": "rgba(15, 50, 90, 0.88)",
+    "skewedCardBorder": "#1e5a9a",
+    "bottomBarBackground": "rgba(4, 16, 30, 0.95)",
+    "acOffIndicator": "#3a5a7a",
+    "temperatureBar": "linear-gradient(90deg, #1a6fd4 0%, #e53935 100%)"
   },
   "spacing": {
     "xs": "0.25rem",
@@ -40,24 +46,24 @@
     "lg": "1.5rem",
     "xl": "2rem",
     "xxl": "3rem",
-    "section": "4rem",
+    "section": "2.5rem",
     "touchTarget": "3rem"
   },
   "typography": {
     "heading1": {
       "size": "1.5rem",
-      "sizeDesktop": "2rem",
+      "sizeDesktop": "1.75rem",
       "weight": "700",
-      "family": "'BMWTypeNext', 'Arial', Helvetica, sans-serif",
+      "family": "'BMW Group', 'Arial', 'Helvetica', sans-serif",
       "lineHeight": "1.2",
       "lineHeightDesktop": "1.2",
       "letterSpacing": "0.02em"
     },
     "heading2": {
       "size": "1.25rem",
-      "sizeDesktop": "1.5rem",
+      "sizeDesktop": "1.375rem",
       "weight": "600",
-      "family": "'BMWTypeNext', 'Arial', Helvetica, sans-serif",
+      "family": "'BMW Group', 'Arial', 'Helvetica', sans-serif",
       "lineHeight": "1.3",
       "lineHeightDesktop": "1.3",
       "letterSpacing": "0.01em"
@@ -66,7 +72,7 @@
       "size": "1rem",
       "sizeDesktop": "1.125rem",
       "weight": "600",
-      "family": "'BMWTypeNext', 'Arial', Helvetica, sans-serif",
+      "family": "'BMW Group', 'Arial', 'Helvetica', sans-serif",
       "lineHeight": "1.4",
       "lineHeightDesktop": "1.4",
       "letterSpacing": "0.01em"
@@ -74,37 +80,37 @@
     "heading": {
       "size": "1.25rem",
       "weight": "700",
-      "family": "'BMWTypeNext', 'Arial', Helvetica, sans-serif",
+      "family": "'BMW Group', 'Arial', 'Helvetica', sans-serif",
       "lineHeight": "1.3"
     },
     "subheading": {
       "size": "0.875rem",
       "weight": "600",
-      "family": "'BMWTypeNext', 'Arial', Helvetica, sans-serif",
+      "family": "'BMW Group', 'Arial', 'Helvetica', sans-serif",
       "lineHeight": "1.4"
     },
     "body": {
       "size": "0.875rem",
       "weight": "400",
-      "family": "'BMWTypeNext', 'Arial', Helvetica, sans-serif",
+      "family": "'BMW Group', 'Arial', 'Helvetica', sans-serif",
       "lineHeight": "1.5"
     },
     "bodySmall": {
       "size": "0.75rem",
       "weight": "400",
-      "family": "'BMWTypeNext', 'Arial', Helvetica, sans-serif",
+      "family": "'BMW Group', 'Arial', 'Helvetica', sans-serif",
       "lineHeight": "1.5"
     },
     "small": {
       "size": "0.625rem",
       "weight": "400",
-      "family": "'BMWTypeNext', 'Arial', Helvetica, sans-serif",
+      "family": "'BMW Group', 'Arial', 'Helvetica', sans-serif",
       "lineHeight": "1.4"
     },
     "label": {
       "size": "0.6875rem",
       "weight": "500",
-      "family": "'BMWTypeNext', 'Arial', Helvetica, sans-serif",
+      "family": "'BMW Group', 'Arial', 'Helvetica', sans-serif",
       "lineHeight": "1.3",
       "letterSpacing": "0.05em"
     }
@@ -128,10 +134,10 @@
   "shadows": {
     "sm": "0 2px 8px rgba(0, 0, 0, 0.5)",
     "md": "0 4px 20px rgba(0, 0, 0, 0.7)",
-    "focus": "0 0 0 2px rgba(26, 111, 212, 0.8)",
-    "focusInset": "inset 0 0 0 2px rgba(26, 111, 212, 0.8)",
-    "glow": "0 0 16px rgba(26, 111, 212, 0.5)",
-    "panelDepth": "0 8px 32px rgba(0, 0, 0, 0.8)"
+    "focus": "0 0 0 2px #2a7fe4",
+    "focusInset": "inset 0 0 0 2px #2a7fe4",
+    "glow": "0 0 16px rgba(26, 111, 212, 0.6)",
+    "panelGlow": "0 8px 32px rgba(0, 0, 0, 0.8)"
   },
   "transitions": {
     "fast": "0.15s ease",
@@ -147,16 +153,18 @@
   },
   "shapes": {
     "cardSkewAngle": "-6deg",
-    "cardClipPath": "polygon(4% 0%, 100% 0%, 96% 100%, 0% 100%)",
+    "cardClipPath": "polygon(6% 0%, 100% 0%, 94% 100%, 0% 100%)",
     "panelGeometry": "trapezoid",
-    "leftPanelClipPath": "polygon(0% 0%, 100% 0%, 94% 100%, 0% 100%)"
+    "skewedPanelTransform": "skewX(-6deg)",
+    "bottomBarHeight": "3.5rem",
+    "statusBarHeight": "2.5rem"
   },
   "_meta": {
     "name": "bmw_idrive_navigation",
-    "description": "BMW iDrive dark navigation HUD with skewed card panels, map view, and status bar.",
+    "description": "BMW iDrive dark navigation HUD with skewed cards, map view, and connectivity panel.",
     "brand": "BMW",
     "theme": "dark",
     "source": "Extracted from Figma file screenshot, frame bmw_idrive_navigation",
-    "font": "BMWTypeNext"
+    "font": "BMW Group, Arial, Helvetica, sans-serif"
   }
 }
