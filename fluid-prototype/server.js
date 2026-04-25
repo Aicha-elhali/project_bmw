@@ -25,6 +25,7 @@ import { generateBackend, generateFrontend }  from './src/generator/claudeClient
 import { writeOutput }                   from './src/output/builder.js';
 import { runValidationLoop }             from './src/validator/index.js';
 import { classifyFrame, describePlacement, describeDefaultBackground } from './src/classifier/frameClassifier.js';
+import { resolveModules, assembleInterfaceDoc, buildBackendFileMap } from './src/backend/_index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT ?? '3001', 10);
@@ -116,6 +117,12 @@ async function handleGenerate(req, res) {
   }
 
   try {
+    const userPrompt = rawFrame.userPrompt || '';
+    if (userPrompt) {
+      delete rawFrame.userPrompt;
+      sendEvent(res, { status: 'progress', phase: 'prompt', message: `User prompt: "${userPrompt.slice(0, 80)}${userPrompt.length > 80 ? '…' : ''}"` });
+    }
+
     // Phase 2: Transform + Classify
     sendEvent(res, { status: 'progress', phase: 'transform', message: 'Transforming Figma frame…' });
     const tree = transformFrame(rawFrame);
@@ -145,33 +152,58 @@ async function handleGenerate(req, res) {
     const tokens = await loadTokens(tokensPath);
     sendEvent(res, { status: 'progress', phase: 'tokens', message: 'Design tokens applied' });
 
-    // Phase 4a: Backend Agent
-    let backendFiles = null;
-    let interfaceDoc = null;
+    // Phase 3.5: Resolve pre-built backend modules + assemble INTERFACE.md
+    const resolvedModules = resolveModules(classification.screenContext);
+    const prebuiltLabels = resolvedModules.modules.map(m => m.label);
+    sendEvent(res, { status: 'progress', phase: 'backend-prebuilt', message: `Pre-built modules: ${prebuiltLabels.join(', ')}` });
 
-    if (apiConfig.hasAPIs) {
-      sendEvent(res, { status: 'progress', phase: 'backend', message: 'Backend Agent generating services…' });
-      const backendPrompt = buildBackendPrompt(classifiedFrames[0].tree, apiConfig);
+    // For prompt builder: full picture of all available backend files
+    let promptInterfaceDoc = await assembleInterfaceDoc(resolvedModules);
+    const promptBackendFiles = buildBackendFileMap(resolvedModules);
+
+    // For output writer: only Backend Agent generated files (pre-built are copied separately)
+    let agentBackendFiles = null;
+    let agentInterfaceDoc = null;
+
+    // Phase 4a: Backend Agent — only for services not covered by pre-built modules
+    const prebuiltIds = new Set(resolvedModules.modules.map(m => m.serviceId));
+    const uncoveredAPIs = apiConfig.detectedServices.filter(label => {
+      const id = label.toLowerCase().replace(/[^a-z]/g, '');
+      return ![...prebuiltIds].some(pid => id.includes(pid) || pid.includes(id));
+    });
+
+    const needsBackendAgent = uncoveredAPIs.length > 0 || userPrompt.trim().length > 0;
+
+    if (needsBackendAgent) {
+      const reason = uncoveredAPIs.length > 0
+        ? `Uncovered APIs: ${uncoveredAPIs.join(', ')}`
+        : `Custom user prompt`;
+      sendEvent(res, { status: 'progress', phase: 'backend', message: `Backend Agent — ${reason}` });
+      const backendPrompt = buildBackendPrompt(classifiedFrames[0].tree, apiConfig, userPrompt);
 
       if (backendPrompt) {
         try {
           const backendResult = await generateBackend(backendPrompt, anthropicKey);
-          backendFiles = backendResult.files;
-          interfaceDoc = backendResult.interfaceDoc;
-          sendEvent(res, { status: 'progress', phase: 'backend', message: `Backend: ${backendFiles.size} files generated` });
+          agentBackendFiles = backendResult.files;
+          agentInterfaceDoc = backendResult.interfaceDoc;
+          for (const [k, v] of agentBackendFiles) promptBackendFiles.set(k, v);
+          if (agentInterfaceDoc) {
+            promptInterfaceDoc += '\n\n' + agentInterfaceDoc;
+          }
+          sendEvent(res, { status: 'progress', phase: 'backend', message: `Backend: ${agentBackendFiles.size} additional files generated` });
         } catch (err) {
-          sendEvent(res, { status: 'progress', phase: 'backend', message: `Backend Agent failed: ${err.message} — continuing` });
+          sendEvent(res, { status: 'progress', phase: 'backend', message: `Backend Agent failed: ${err.message} — continuing with pre-built` });
         }
       }
     } else {
-      sendEvent(res, { status: 'progress', phase: 'backend', message: 'Skipped — no APIs' });
+      sendEvent(res, { status: 'progress', phase: 'backend', message: 'Skipped — all services pre-built' });
     }
 
     // Phase 4b: Frontend Agent
     sendEvent(res, { status: 'progress', phase: 'frontend', message: 'Frontend Agent generating UI…' });
     const frontendPrompt = buildFrontendPrompt(
       classifiedFrames[0].tree, tokens, apiConfig,
-      interfaceDoc, backendFiles,
+      promptInterfaceDoc, promptBackendFiles, userPrompt,
     );
 
     const frontendFiles = await generateFrontend(frontendPrompt, anthropicKey);
@@ -180,8 +212,9 @@ async function handleGenerate(req, res) {
     // Phase 5: Write Output
     sendEvent(res, { status: 'progress', phase: 'output', message: 'Writing output files…' });
     const written = await writeOutput(frontendFiles, outputDir, apiConfig, {
-      backendFiles,
-      interfaceDoc,
+      backendFiles: agentBackendFiles,
+      interfaceDoc: agentInterfaceDoc,
+      resolvedModules,
     });
     sendEvent(res, { status: 'progress', phase: 'output', message: `Wrote ${written.length} files` });
 
@@ -206,7 +239,8 @@ async function handleGenerate(req, res) {
       apiKey: anthropicKey,
       maxIterations: 3,
       tokens,
-      interfaceDoc,
+      interfaceDoc: promptInterfaceDoc,
+      userPrompt,
       onProgress: (msg) => sendEvent(res, { status: 'progress', phase: 'validate', message: msg }),
     });
 

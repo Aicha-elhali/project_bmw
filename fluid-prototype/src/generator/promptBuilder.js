@@ -103,10 +103,11 @@ export default NotificationCard;
  * @param {object} apiConfig     — resolved API config from apiRegistry
  * @returns {string} Full prompt text
  */
-export function buildGenerationPrompt(componentTree, tokens, apiConfig = {}) {
+export function buildGenerationPrompt(componentTree, tokens, apiConfig = {}, userPrompt = '') {
   const trimmedTree    = trimTree(componentTree);
   const componentNames = [...collectComponentNames(componentTree)];
   const usedTypes      = [...collectTypes(componentTree)];
+  const hasDisplayShape = componentTree.hasDisplayShape === true;
 
   const hasAPIs    = apiConfig.hasAPIs;
   const hasMap     = apiConfig.promptSections?.some(s => s.includes('MapLibre'));
@@ -154,8 +155,12 @@ All hooks must clean up (clear intervals, abort fetches) in their useEffect retu
 
   // -- Build prompt --------------------------------------------------------
 
+  const wireframeScope = userPrompt
+    ? `Implement the elements present in the wireframe as a ${hasAPIs ? 'fully functional' : 'static'} BMW infotainment screen. Additionally, implement any UI elements or features the user explicitly describes in their prompt — even if they do not appear in the component tree.`
+    : `Implement ONLY the elements present in the wireframe as a ${hasAPIs ? 'fully functional' : 'static'} BMW infotainment screen. Do not add, invent, or hallucinate any UI elements that are not in the component tree.`;
+
   return `
-You are a senior React engineer building a BMW in-car HMI interface. Generate a complete, working React application from a Figma wireframe that faithfully implements the wireframe as a ${hasAPIs ? 'fully functional' : 'static'} BMW infotainment screen. Implement ONLY the elements present in the wireframe — do not add, invent, or hallucinate any UI elements that are not in the component tree.
+You are a senior React engineer building a BMW in-car HMI interface. Generate a complete, working React application from a Figma wireframe that faithfully implements the wireframe. ${wireframeScope}
 
 ## BMW HMI DESIGN SYSTEM — VERBINDLICH
 
@@ -410,7 +415,17 @@ import { HMIDisplay, HMIHeader, HMIFooter, LeftSideSlot, RightSideSlot, MapBackg
   Props: \`{ name, size?, color?, style? }\`
   Names: note, play, forward, phone, home, fan, car, apps, bell, mute, bluetooth, wifi, mic, wrench, user, triangleAlert, seatbelt, door, minus, plus, seat, park, pin, compass, search, chevronRight, chevronDown, close, bolt, charge, speaker, camera, record, music, settings, arrow, shield
 
-## Your Task
+${userPrompt ? `## NUTZER-ANFORDERUNGEN — HOECHSTE PRIORITAET
+
+Der Nutzer hat folgende Beschreibung/Anforderungen angegeben. Diese haben ABSOLUTE PRIORITAET ueber den BMW Design Guide. Wenn der Nutzer etwas verlangt das vom Design Guide abweicht, setze die Nutzer-Anforderung um — OHNE Kompromiss.
+
+> ${userPrompt}
+
+Setze ALLE beschriebenen Interaktionen, Animationen, Verhaltensweisen und visuellen Anforderungen exakt um.
+Du DARFST und SOLLST zusaetzliche UI-Elemente erstellen die der Nutzer beschreibt, auch wenn sie NICHT im Wireframe/Component-Tree vorkommen. Erstelle dafuer eigene Komponenten-Dateien.
+Der Design Guide ist sekundaer gegenueber diesen Anforderungen.
+
+` : ''}## Your Task
 
 Generate ONLY die Content-Komponenten. Chrome (Display, Header, Footer, SideSlots) ist bereits vorhanden.
 
@@ -458,7 +473,28 @@ export default App;
 - Cards schweben UEBER dem Hintergrund — niemals full-screen ersetzen
 - Fuer Map-Screens: \`<MapBackground />\` als erstes Kind von HMIDisplay
 - Fuer andere Screens: solid Gradient \`linear-gradient(180deg, #0E1B30, #0A1428)\`
+${hasDisplayShape ? `
+## DISPLAY-SHAPE WIREFRAME ERKANNT
 
+Das Figma-Wireframe verwendet die BMW Display-Form (Parallelogramm mit abgeschraegten Ecken).
+Die Positionen im Component-Tree sind relativ zum vollen 1920x720 Rechteck, NICHT zur sichtbaren Flaeche.
+
+**HMIDisplay hat folgende clip-path Vertices (px):**
+- Oben-links: (168, 0) | Oben-rechts: (1824, 0)
+- Rechts-mitte: (1920, 580) | Unten-rechts: (1752, 720)
+- Unten-links: (96, 720) | Links-mitte: (0, 140)
+
+**KRITISCH — Verwende die Tree-Positionen NICHT als absolute Pixel-Werte.**
+Platziere Content NUR innerhalb des Content-Containers mit padding. Elemente die nah am Rand liegen
+werden sonst vom clip-path abgeschnitten. Verwende die Tree-Positionen nur als RELATIVES Hinweis
+fuer die Anordnung (was links ist, was oben ist, was neben was steht).
+
+**Minimum-Abstaende vom Displayrand (innerhalb HMIDisplay):**
+- Links: 200px (wegen LeftSideSlot + Chamfer)
+- Rechts: 260px (wegen RightSideSlot + Chamfer)
+- Oben: 60px (wegen Header)
+- Unten: 100px (wegen Footer)
+` : ''}
 ## REFERENZ — So sieht korrekter BMW HMI Content aus
 
 ### Map Screen Content (Referenz-Pattern):
@@ -578,7 +614,9 @@ ${rule8}
 ${rule9}
 10. **Touch targets**: All interactive elements >= 64px (minimum 48px for secondary actions).
 11. **Icons**: IMMER \`import BMWIcon from '../hmi/BMWIcons.jsx'\` verwenden. KEINE eigenen Icons, KEINE Emoji, KEINE Unicode-Symbole fuer UI-Icons. Nur BMWIcon mit den verfuegbaren \`name\`-Werten.
-12. **No hallucinated elements**: ONLY implement UI elements that exist in the component tree. Do NOT add speed displays, route panels, search bars, or any other widget that is not in the wireframe. The tree is the single source of truth.
+${userPrompt
+    ? `12. **User-requested elements**: Implement everything the user describes in their prompt, even if it is NOT in the component tree. Create additional components as needed. For all other elements, follow the tree — do not invent UI beyond what the tree or the user prompt specifies.`
+    : `12. **No hallucinated elements**: ONLY implement UI elements that exist in the component tree. Do NOT add speed displays, route panels, search bars, or any other widget that is not in the wireframe. The tree is the single source of truth.`}
 13. **Dark theme**: Background #0A1428. Cards use gradient. Zero white/light backgrounds.
 14. **BMW Blue**: #1C69D4 for active states, primary buttons, selected items.
 15. **NO EMOJI**: Never. Use BMWIcon for all icon needs.
@@ -625,8 +663,9 @@ Now generate all content components, then App.jsx last. App.jsx MUSS die PFLICHT
  * @param {function} options.describeDefaultBackground — from frameClassifier
  * @returns {string} Full prompt text
  */
-export function buildMultiFramePrompt(frames, tokens, apiConfig = {}, options = {}) {
+export function buildMultiFramePrompt(frames, tokens, apiConfig = {}, options = {}, userPrompt = '') {
   const { describePlacement, describeDefaultBackground } = options;
+  const hasDisplayShape = frames.some(f => f.tree?.hasDisplayShape);
 
   // Separate fullscreen frames from partial frames
   const fullscreenFrames = frames.filter(f => !f.classification.isPartial);
@@ -749,8 +788,12 @@ ${partialFrames.some(f => f.classification.frameType === 'popup' || f.classifica
     ? `9. **Map**: react-map-gl/maplibre + MapTiler Dark vector tiles. Float controls with position absolute. Custom Marker components.`
     : `9. **Map placeholder**: Dark containers (#0F1A2C) with gradients. No real maps.`;
 
+  const wireframeScope = userPrompt
+    ? `Implement the elements present in the wireframe as a BMW infotainment screen (Operating System X / Panoramic Vision style). Additionally, implement any UI elements or features the user explicitly describes in their prompt — even if they do not appear in the component tree.`
+    : `Implement ONLY the elements present in the wireframe as a BMW infotainment screen (Operating System X / Panoramic Vision style). Do not add, invent, or hallucinate any UI elements that are not in the component tree.`;
+
   return `
-You are a senior React engineer building a BMW in-car HMI interface. Generate a complete, working React application from ${frames.length > 1 ? `${frames.length} Figma wireframes` : 'a Figma wireframe'} that faithfully implements the wireframe as a BMW infotainment screen (Operating System X / Panoramic Vision style). Implement ONLY the elements present in the wireframe — do not add, invent, or hallucinate any UI elements that are not in the component tree.
+You are a senior React engineer building a BMW in-car HMI interface. Generate a complete, working React application from ${frames.length > 1 ? `${frames.length} Figma wireframes` : 'a Figma wireframe'} that faithfully implements the wireframe. ${wireframeScope}
 
 ${frames.length > 1 ? `**MULTI-FRAME INPUT:** Du erhältst ${frames.length} Figma-Frames die zusammengehören. Analysiere die Zusammenhänge und baue EIN einheitliches UI.` : ''}
 ${partialFrames.length > 0 ? `**PARTIAL WIREFRAME:** ${partialFrames.length === frames.length ? 'Alle' : 'Einige'} Frames sind keine vollständigen Screens. Der fehlende HMI-Kontext wird durch pre-built Chrome-Komponenten bereitgestellt.` : ''}
@@ -819,7 +862,17 @@ import { HMIDisplay, HMIHeader, HMIFooter, LeftSideSlot, RightSideSlot, MapBackg
   Props: \`{ name, size?, color?, style? }\`
   Names: note, play, forward, phone, home, fan, car, apps, bell, mute, bluetooth, wifi, mic, wrench, user, triangleAlert, seatbelt, door, minus, plus, seat, park, pin, compass, search, chevronRight, chevronDown, close, bolt, charge, speaker, camera, record, music, settings, arrow, shield
 
-## Your Task
+${userPrompt ? `## NUTZER-ANFORDERUNGEN — HOECHSTE PRIORITAET
+
+Der Nutzer hat folgende Beschreibung/Anforderungen angegeben. Diese haben ABSOLUTE PRIORITAET ueber den BMW Design Guide. Wenn der Nutzer etwas verlangt das vom Design Guide abweicht, setze die Nutzer-Anforderung um — OHNE Kompromiss.
+
+> ${userPrompt}
+
+Setze ALLE beschriebenen Interaktionen, Animationen, Verhaltensweisen und visuellen Anforderungen exakt um.
+Du DARFST und SOLLST zusaetzliche UI-Elemente erstellen die der Nutzer beschreibt, auch wenn sie NICHT im Wireframe/Component-Tree vorkommen. Erstelle dafuer eigene Komponenten-Dateien.
+Der Design Guide ist sekundaer gegenueber diesen Anforderungen.
+
+` : ''}## Your Task
 
 Generate ONLY die Content-Komponenten. Chrome (Display, Header, Footer, SideSlots) ist bereits vorhanden.
 
@@ -871,7 +924,28 @@ ${frames.length > 1 ? `- **Multi-Frame:** Alle ${frames.length} Frames werden in
 ${partialFrames.some(f => f.classification.frameType === 'popup' || f.classification.frameType === 'modal')
   ? '- Popups/Modals verwenden useState zum Oeffnen/Schliessen. Zeige sie initial als geoeffnet.'
   : ''}
+${hasDisplayShape ? `
+## DISPLAY-SHAPE WIREFRAME ERKANNT
 
+Das Figma-Wireframe verwendet die BMW Display-Form (Parallelogramm mit abgeschraegten Ecken).
+Die Positionen im Component-Tree sind relativ zum vollen 1920x720 Rechteck, NICHT zur sichtbaren Flaeche.
+
+**HMIDisplay hat folgende clip-path Vertices (px):**
+- Oben-links: (168, 0) | Oben-rechts: (1824, 0)
+- Rechts-mitte: (1920, 580) | Unten-rechts: (1752, 720)
+- Unten-links: (96, 720) | Links-mitte: (0, 140)
+
+**KRITISCH — Verwende die Tree-Positionen NICHT als absolute Pixel-Werte.**
+Platziere Content NUR innerhalb des Content-Containers mit padding. Elemente die nah am Rand liegen
+werden sonst vom clip-path abgeschnitten. Verwende die Tree-Positionen nur als RELATIVES Hinweis
+fuer die Anordnung (was links ist, was oben ist, was neben was steht).
+
+**Minimum-Abstaende vom Displayrand (innerhalb HMIDisplay):**
+- Links: 200px (wegen LeftSideSlot + Chamfer)
+- Rechts: 260px (wegen RightSideSlot + Chamfer)
+- Oben: 60px (wegen Header)
+- Unten: 100px (wegen Footer)
+` : ''}
 ## REFERENZ — So sieht korrekter BMW HMI Content aus
 
 ### Map Screen Content (Referenz-Pattern):
@@ -934,7 +1008,9 @@ ${rule8}
 ${rule9}
 10. **Touch targets**: All interactive elements >= 64px (minimum 48px for secondary actions).
 11. **Icons**: IMMER \`import BMWIcon from '../hmi/BMWIcons.jsx'\` verwenden. KEINE eigenen Icons, KEINE Emoji, KEINE Unicode-Symbole fuer UI-Icons. Nur BMWIcon mit den verfuegbaren \`name\`-Werten.
-12. **No hallucinated elements**: ONLY implement UI elements that exist in the component tree. Do NOT add speed displays, route panels, search bars, or any other widget that is not in the wireframe. The tree is the single source of truth.
+${userPrompt
+    ? `12. **User-requested elements**: Implement everything the user describes in their prompt, even if it is NOT in the component tree. Create additional components as needed. For all other elements, follow the tree — do not invent UI beyond what the tree or the user prompt specifies.`
+    : `12. **No hallucinated elements**: ONLY implement UI elements that exist in the component tree. Do NOT add speed displays, route panels, search bars, or any other widget that is not in the wireframe. The tree is the single source of truth.`}
 13. **Dark theme**: Background #0A1428. Cards use gradient. Zero white/light backgrounds.
 14. **BMW Blue**: #1C69D4 for active states, primary buttons, selected items.
 15. **NO EMOJI**: Never. Use BMWIcon for all icon needs.

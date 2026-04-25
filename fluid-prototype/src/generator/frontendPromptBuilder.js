@@ -19,9 +19,9 @@ function buildBackendContextSection(interfaceDoc, backendFiles) {
   if (!interfaceDoc && (!backendFiles || backendFiles.size === 0)) return '';
 
   let section = `
-## BACKEND LAYER (bereits generiert — NICHT neu erstellen!)
+## BACKEND LAYER (pre-built — verfuegbar in services/, hooks/, context/)
 
-Ein separater Backend-Agent hat die Service-Schicht bereits generiert.
+Pre-built Service-Module sind bereits vorhanden.
 Du MUSST die folgenden Hooks und Contexts importieren statt eigene API-Calls zu schreiben.
 Schreibe KEINE eigenen fetch()-Calls, KEINE eigenen Services.
 
@@ -100,8 +100,8 @@ function capitalize(str) {
  * @param {Map<string,string>|null} backendFiles — generated backend files
  * @returns {string}
  */
-export function buildFrontendPrompt(componentTree, tokens, apiConfig, interfaceDoc, backendFiles) {
-  const basePrompt = buildGenerationPrompt(componentTree, tokens, apiConfig);
+export function buildFrontendPrompt(componentTree, tokens, apiConfig, interfaceDoc, backendFiles, userPrompt = '') {
+  const basePrompt = buildGenerationPrompt(componentTree, tokens, apiConfig, userPrompt);
   const backendContext = buildBackendContextSection(interfaceDoc, backendFiles);
 
   if (!backendContext) return basePrompt;
@@ -124,8 +124,8 @@ export function buildFrontendPrompt(componentTree, tokens, apiConfig, interfaceD
  * @param {Map<string,string>|null} backendFiles
  * @returns {string}
  */
-export function buildMultiFrameFrontendPrompt(frames, tokens, apiConfig, options, interfaceDoc, backendFiles) {
-  const basePrompt = buildMultiFramePrompt(frames, tokens, apiConfig, options);
+export function buildMultiFrameFrontendPrompt(frames, tokens, apiConfig, options, interfaceDoc, backendFiles, userPrompt = '') {
+  const basePrompt = buildMultiFramePrompt(frames, tokens, apiConfig, options, userPrompt);
   const backendContext = buildBackendContextSection(interfaceDoc, backendFiles);
 
   if (!backendContext) return basePrompt;

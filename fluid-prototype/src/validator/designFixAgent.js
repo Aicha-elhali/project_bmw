@@ -143,10 +143,24 @@ boxShadow: "0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)"
 ## Typography
 
 Font: "BMW Type Next", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif
-ALL CAPS labels: letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 14, color: "#A8B5C8"`;
+ALL CAPS labels: letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 14, color: "#A8B5C8"
 
-function buildUserMessage(files, issues) {
-  let msg = '## Issues to fix\n\n';
+## USER OVERRIDE POLICY
+
+If "User Requirements" are included in the fix request, those requirements have ABSOLUTE PRIORITY over the BMW Design Guide. When fixing issues:
+- NEVER revert or modify code that implements explicit user requirements
+- If an issue contradicts a user requirement, SKIP that fix — the user's request wins
+- Only fix issues that the user did NOT explicitly override
+- Preserve all user-requested interactions, animations, colors, and behaviors exactly as implemented`;
+
+function buildUserMessage(files, issues, userPrompt) {
+  let msg = '';
+
+  if (userPrompt) {
+    msg += `## User Requirements (DO NOT revert these)\n\nThe user explicitly requested:\n> ${userPrompt}\n\nAnything implementing these requirements MUST be preserved. Skip fixes that would revert user-requested behavior.\n\n`;
+  }
+
+  msg += '## Issues to fix\n\n';
   msg += '```json\n' + JSON.stringify(issues, null, 2) + '\n```\n\n';
   msg += '## Current files\n\n';
 
@@ -160,14 +174,14 @@ function buildUserMessage(files, issues) {
   return msg;
 }
 
-export async function runDesignFixAgent(files, issues, { apiKey }) {
+export async function runDesignFixAgent(files, issues, { apiKey, userPrompt }) {
   const client = new Anthropic({ apiKey });
 
   const stream = client.messages.stream({
     model: MODEL,
     max_tokens: 32768,
     system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: buildUserMessage(files, issues) }],
+    messages: [{ role: 'user', content: buildUserMessage(files, issues, userPrompt) }],
   });
 
   const finalMessage = await stream.finalMessage();

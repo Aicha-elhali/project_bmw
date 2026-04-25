@@ -8,13 +8,14 @@
  *   cd output && npm install && npm run dev
  */
 
-import { mkdir, writeFile, rm, copyFile } from 'fs/promises';
+import { mkdir, writeFile, rm, copyFile, readFile } from 'fs/promises';
 import { join, dirname, resolve }          from 'path';
 import { fileURLToPath }                   from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const HMI_DIR = resolve(__dirname, '..', '..', 'BMW HMI Design System');
 const HMI_ESM_DIR = resolve(__dirname, '..', 'hmi');
+const BACKEND_DIR = resolve(__dirname, '..', 'backend');
 
 // ---------------------------------------------------------------------------
 // Dynamic Vite scaffolding builders
@@ -289,6 +290,45 @@ async function copyHMIComponents(outputDir) {
 }
 
 /**
+ * Copy pre-built backend service modules to output/src/
+ */
+async function copyBackendServices(outputDir, resolvedModules) {
+  if (!resolvedModules?.modules?.length) return { written: [], interfaceDoc: '' };
+
+  const written = [];
+  for (const mod of resolvedModules.modules) {
+    for (const [srcRel, destRel] of Object.entries(mod.files)) {
+      const src = join(BACKEND_DIR, srcRel);
+      const dest = join(outputDir, 'src', destRel);
+      await mkdir(dirname(dest), { recursive: true });
+      try {
+        await copyFile(src, dest);
+        written.push(`src/${destRel}`);
+      } catch (e) {
+        console.warn(`  ⚠  Could not copy backend module ${srcRel}: ${e.message}`);
+      }
+    }
+  }
+
+  let interfaceDoc = '';
+  try {
+    interfaceDoc = await readFile(join(BACKEND_DIR, '_interface.md'), 'utf-8');
+  } catch { interfaceDoc = '# INTERFACE\n'; }
+
+  for (const mod of resolvedModules.modules) {
+    try {
+      const fragment = await readFile(join(BACKEND_DIR, mod.interfaceFragment), 'utf-8');
+      interfaceDoc += '\n' + fragment;
+    } catch {}
+  }
+
+  await writeFile(join(outputDir, 'src', 'INTERFACE.md'), interfaceDoc, 'utf-8');
+  written.push('src/INTERFACE.md');
+
+  return { written, interfaceDoc };
+}
+
+/**
  * Write all generated files to the output directory.
  * @param {Map<string, string>} frontendFiles — filename → code (components, App.jsx)
  * @param {string} outputDir  — destination path
@@ -296,10 +336,17 @@ async function copyHMIComponents(outputDir) {
  * @param {object} [extras]
  * @param {Map<string, string>} [extras.backendFiles] — services/hooks/context files
  * @param {string} [extras.interfaceDoc] — INTERFACE.md content
+ * @param {object} [extras.resolvedModules] — pre-built backend modules from resolveModules()
  * @returns {Promise<string[]>} list of written file paths
  */
 export async function writeOutput(frontendFiles, outputDir, apiConfig = {}, extras = {}) {
-  const { backendFiles, interfaceDoc } = extras;
+  const { backendFiles, interfaceDoc, resolvedModules } = extras;
+
+  if (resolvedModules) {
+    Object.assign(apiConfig.packages || (apiConfig.packages = {}), resolvedModules.npmPackages || {});
+    Object.assign(apiConfig.envVars || (apiConfig.envVars = {}), resolvedModules.envVars || {});
+    (apiConfig.headTags || (apiConfig.headTags = [])).push(...(resolvedModules.headTags || []));
+  }
 
   // Normalize keys: strip all src/ prefixes to prevent double-nesting (output/src/src/)
   function normalizeKey(key) {
@@ -354,6 +401,11 @@ export async function writeOutput(frontendFiles, outputDir, apiConfig = {}, extr
   const hmiFiles = await copyHMIComponents(outputDir);
   written.push(...hmiFiles);
 
+  // Copy pre-built backend service modules
+  const backendCopy = await copyBackendServices(outputDir, resolvedModules);
+  written.push(...backendCopy.written);
+  const assembledInterface = backendCopy.interfaceDoc || interfaceDoc;
+
   // Vite scaffolding
   const indexHtml   = buildIndexHtml(apiConfig.headTags || []);
   const packageJson = buildPackageJson(apiConfig.packages || {});
@@ -374,8 +426,11 @@ export async function writeOutput(frontendFiles, outputDir, apiConfig = {}, extr
     }
   }
 
-  // Write INTERFACE.md for debugging
-  if (interfaceDoc) {
+  // Write INTERFACE.md (append Backend Agent additions to pre-built if both exist)
+  if (interfaceDoc && assembledInterface && assembledInterface !== interfaceDoc) {
+    const merged = assembledInterface + '\n\n---\n\n## Custom (Backend Agent)\n\n' + interfaceDoc;
+    await writeFile(join(outputDir, 'src', 'INTERFACE.md'), merged, 'utf-8');
+  } else if (interfaceDoc && !assembledInterface) {
     await writeFile(join(outputDir, 'src', 'INTERFACE.md'), interfaceDoc, 'utf-8');
     written.push('src/INTERFACE.md');
   }

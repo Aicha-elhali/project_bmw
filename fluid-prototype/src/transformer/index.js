@@ -79,10 +79,16 @@ function resolveType(figmaNode) {
   return TYPE_FALLBACK[figmaNode.type] ?? 'container';
 }
 
+function hasNamePattern(name) {
+  for (const [pattern] of NAME_PATTERNS) {
+    if (pattern.test(name)) return true;
+  }
+  return false;
+}
+
 function resolveLayoutDirection(node) {
   if (node.layoutMode === 'HORIZONTAL') return 'row';
   if (node.layoutMode === 'VERTICAL')   return 'column';
-  // Guess from bounding box aspect ratio when no auto-layout is set
   const box = node.absoluteBoundingBox;
   if (box && box.width > box.height * 1.5) return 'row';
   return 'column';
@@ -95,6 +101,56 @@ function extractFill(fills = []) {
   const toHex = v => Math.round(v * 255).toString(16).padStart(2, '0');
   if (a < 1) return `rgba(${Math.round(r*255)},${Math.round(g*255)},${Math.round(b*255)},${a.toFixed(2)})`;
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+// ---------------------------------------------------------------------------
+// Decorative shape filter
+//
+// Figma wireframes can include the BMW display shape (chamfered parallelogram)
+// as VECTOR/BOOLEAN_OPERATION corner shapes or dark background rectangles.
+// These are purely decorative — HMIDisplay handles the display form in code.
+// Filter them out so they don't pollute the component tree.
+// ---------------------------------------------------------------------------
+
+const DECORATIVE_TYPES = new Set([
+  'VECTOR', 'BOOLEAN_OPERATION', 'LINE', 'STAR', 'POLYGON',
+]);
+
+function isNearBlack(colorStr) {
+  if (!colorStr) return false;
+  if (colorStr.startsWith('#')) {
+    const r = parseInt(colorStr.slice(1, 3), 16);
+    const g = parseInt(colorStr.slice(3, 5), 16);
+    const b = parseInt(colorStr.slice(5, 7), 16);
+    return r < 25 && g < 25 && b < 25;
+  }
+  const m = colorStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if (m) return +m[1] < 25 && +m[2] < 25 && +m[3] < 25;
+  return false;
+}
+
+function isDecorativeShape(figmaNode, depth) {
+  if (depth > 2) return false;
+
+  const name = figmaNode.name || '';
+  if (hasNamePattern(name)) return false;
+
+  const type = figmaNode.type;
+
+  if (DECORATIVE_TYPES.has(type)) return true;
+
+  if (type === 'ELLIPSE' && !figmaNode.children?.length) return true;
+
+  if (type === 'RECTANGLE' && !figmaNode.children?.length) {
+    const fill = extractFill(figmaNode.fills);
+    if (isNearBlack(fill)) return true;
+  }
+
+  if (type === 'GROUP' && figmaNode.children?.length) {
+    if (figmaNode.children.every(c => isDecorativeShape(c, depth + 1))) return true;
+  }
+
+  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -155,17 +211,29 @@ export function transformNode(figmaNode, depth = 0) {
   };
 
   if (figmaNode.children?.length) {
-    node.children = figmaNode.children.map(child => transformNode(child, depth + 1));
+    const before = figmaNode.children.length;
+    const filtered = figmaNode.children.filter(child => !isDecorativeShape(child, depth + 1));
+    if (depth === 0) {
+      _filteredCount += before - filtered.length;
+    }
+    node.children = filtered.map(child => transformNode(child, depth + 1));
   }
 
   return node;
 }
 
+let _filteredCount = 0;
+
 /**
  * Transform a complete Figma frame into a navigation component tree.
  * Resets the node counter so IDs are stable per run.
+ *
+ * @returns {object} tree — root node with `.hasDisplayShape` flag
  */
 export function transformFrame(figmaFrame) {
   _nodeCounter = 0;
-  return transformNode(figmaFrame);
+  _filteredCount = 0;
+  const tree = transformNode(figmaFrame);
+  tree.hasDisplayShape = _filteredCount > 0;
+  return tree;
 }

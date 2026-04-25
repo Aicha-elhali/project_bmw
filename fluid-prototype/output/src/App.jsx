@@ -1,25 +1,22 @@
 import React from 'react';
-import {
-  HMIDisplay,
-  HMIHeader,
-  HMIFooter,
-  LeftSideSlot,
-  RightSideSlot,
-} from './hmi/HMIChrome.jsx';
+import { HMIDisplay, HMIHeader, HMIFooter, LeftSideSlot, RightSideSlot } from './hmi/HMIChrome.jsx';
+import { NavigationProvider } from './context/NavigationContext.jsx';
 import Mapnavigationscreen from './components/Mapnavigationscreen.jsx';
 
 const App = () => {
   return (
-    <HMIDisplay>
-      {/* Background: Interactive Map as full background */}
-      <Mapnavigationscreen />
+    <NavigationProvider>
+      <HMIDisplay>
+        {/* Map as full background — replaces MapBackground for interactive map */}
+        <Mapnavigationscreen />
 
-      {/* CHROME — IMMER vorhanden */}
-      <HMIHeader />
-      <LeftSideSlot />
-      <RightSideSlot showPark={false} />
-      <HMIFooter active="phone" />
-    </HMIDisplay>
+        {/* CHROME — always present */}
+        <HMIHeader />
+        <LeftSideSlot />
+        <RightSideSlot showPark={false} />
+        <HMIFooter active="nav" />
+      </HMIDisplay>
+    </NavigationProvider>
   );
 };
 

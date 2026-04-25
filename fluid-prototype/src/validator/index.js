@@ -10,7 +10,7 @@ import { join, dirname }            from 'path';
 // Generic validation loop
 // ---------------------------------------------------------------------------
 
-async function runLoop(outputDir, { apiKey, maxIterations, tokens, interfaceDoc, onProgress, testFn, fixFn, label }) {
+async function runLoop(outputDir, { apiKey, maxIterations, tokens, interfaceDoc, userPrompt, onProgress, testFn, fixFn, label }) {
   let prevIssueCount = Infinity;
 
   for (let i = 0; i < maxIterations; i++) {
@@ -18,7 +18,7 @@ async function runLoop(outputDir, { apiKey, maxIterations, tokens, interfaceDoc,
     const files = await readOutputFiles(outputDir);
     onProgress(`[${label}] Iteration ${i + 1}/${maxIterations}: testing ${files.size} files...`);
 
-    const verdict = await testFn(files, { apiKey, tokens, interfaceDoc });
+    const verdict = await testFn(files, { apiKey, tokens, interfaceDoc, userPrompt });
     onProgress(`[${label}] Iteration ${i + 1}/${maxIterations}: ${verdict.summary}`);
 
     if (verdict.approved) {
@@ -36,7 +36,7 @@ async function runLoop(outputDir, { apiKey, maxIterations, tokens, interfaceDoc,
     prevIssueCount = toFix.length;
 
     onProgress(`[${label}] Iteration ${i + 1}/${maxIterations}: fixing ${toFix.length} issues...`);
-    const corrected = await fixFn(files, toFix, { apiKey, tokens });
+    const corrected = await fixFn(files, toFix, { apiKey, tokens, userPrompt });
 
     if (corrected.size === 0) {
       onProgress(`[${label}] Fix agent returned no changes, stopping`);
@@ -54,7 +54,7 @@ async function runLoop(outputDir, { apiKey, maxIterations, tokens, interfaceDoc,
 
   // Final check
   const finalFiles = await readOutputFiles(outputDir);
-  const finalVerdict = await testFn(finalFiles, { apiKey, tokens, interfaceDoc });
+  const finalVerdict = await testFn(finalFiles, { apiKey, tokens, interfaceDoc, userPrompt });
   onProgress(`[${label}] Final: ${finalVerdict.summary}`);
 
   return {
@@ -96,11 +96,12 @@ export async function runDesignValidationLoop(outputDir, options = {}) {
     apiKey,
     maxIterations = 3,
     tokens = null,
+    userPrompt = '',
     onProgress = () => {},
   } = options;
 
   return runLoop(outputDir, {
-    apiKey, maxIterations, tokens, interfaceDoc: null, onProgress,
+    apiKey, maxIterations, tokens, interfaceDoc: null, userPrompt, onProgress,
     testFn: runDesignTestingAgent,
     fixFn: runDesignFixAgent,
     label: 'Design',
@@ -116,6 +117,7 @@ export async function runValidationLoop(outputDir, options = {}) {
     maxIterations = 3,
     tokens = null,
     interfaceDoc = null,
+    userPrompt = '',
     onProgress = () => {},
   } = options;
 
@@ -135,6 +137,7 @@ export async function runValidationLoop(outputDir, options = {}) {
     apiKey,
     maxIterations,
     tokens,
+    userPrompt,
     onProgress,
   });
 

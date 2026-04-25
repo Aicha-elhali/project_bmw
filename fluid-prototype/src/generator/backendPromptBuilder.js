@@ -26,7 +26,7 @@ function collectTypes(node, types = new Set()) {
  * @param {object}  apiConfig     — resolved from apiRegistry
  * @returns {string|null} prompt text, or null if no APIs detected
  */
-export function buildBackendPrompt(componentTree, apiConfig) {
+export function buildBackendPrompt(componentTree, apiConfig, userPrompt = '') {
   if (!apiConfig.hasAPIs) return null;
 
   const usedTypes = [...collectTypes(componentTree)];
@@ -71,7 +71,13 @@ When multiple media sources are detected (Spotify, Radio, Podcast), generate a s
 ${apiConfig.mediaContext}
 ` : ''}
 
-## Your Task
+${userPrompt ? `## User Requirements (PRIORITY)
+
+The user provided the following description. Implement any backend/API requirements described here, even if they deviate from the standard patterns:
+
+> ${userPrompt}
+
+` : ''}## Your Task
 
 Generate the complete service layer. Files to create:
 

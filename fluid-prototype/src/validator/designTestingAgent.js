@@ -163,9 +163,19 @@ Set "approved" to false if there are ANY critical issues (own-chrome, missing-hm
 Warnings alone do NOT block approval but MUST be reported.
 
 IMPORTANT: For icon issues, ALWAYS include the "fix" field with the exact replacement code.
-Example: { "rule": "custom-svg-icon", "fix": "<BMWIcon name=\\"play\\" size={28} color=\\"#fff\\"/>" }`;
+Example: { "rule": "custom-svg-icon", "fix": "<BMWIcon name=\\"play\\" size={28} color=\\"#fff\\"/>" }
 
-function buildUserMessage(files, tokens) {
+## USER OVERRIDE POLICY
+
+If a "User Requirements" section is included in the review message, those requirements have ABSOLUTE PRIORITY over the BMW Design Guide. Do NOT flag issues that are a direct result of user requirements. Examples:
+- User requests a specific color scheme → do NOT flag "warm-accent" or "neutral-black-bg"
+- User requests a specific animation style → do NOT flag "wrong-easing" or "slow-animation"
+- User requests custom interactions → do NOT flag those as "consumer-pattern"
+- User requests emoji or specific icons → do NOT flag "emoji-icon"
+
+Only flag issues that CONTRADICT what the user explicitly requested, or structural issues (offscreen, missing chrome) that the user did NOT override.`;
+
+function buildUserMessage(files, tokens, userPrompt) {
   let msg = 'Review these BMW HMI React UI files for design system compliance, offscreen issues, and icon/logo correctness.\n\n';
   msg += '## Available files\n\n';
   msg += [...files.keys()].map(f => `- ${f}`).join('\n');
@@ -181,6 +191,10 @@ function buildUserMessage(files, tokens) {
 
   if (tokens) {
     msg += `## Design tokens (ground truth)\n\`\`\`json\n${JSON.stringify(tokens, null, 2)}\n\`\`\`\n\n`;
+  }
+
+  if (userPrompt) {
+    msg += `## User Requirements (DO NOT flag deviations caused by these)\n\nThe user explicitly requested:\n> ${userPrompt}\n\nAnything in the code that implements these requirements is CORRECT, even if it deviates from the BMW Design Guide. Only flag issues that contradict the user's request or structural problems the user did not override.\n\n`;
   }
 
   msg += `Focus on:
@@ -203,7 +217,7 @@ function parseJsonResponse(text) {
   return JSON.parse(cleaned);
 }
 
-export async function runDesignTestingAgent(files, { apiKey, tokens }) {
+export async function runDesignTestingAgent(files, { apiKey, tokens, userPrompt }) {
   const uiFiles = new Map(
     [...files.entries()].filter(([p]) =>
       !p.includes('services/') && !p.includes('hooks/') && !p.includes('context/')
@@ -220,7 +234,7 @@ export async function runDesignTestingAgent(files, { apiKey, tokens }) {
     model: MODEL,
     max_tokens: 16384,
     system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: buildUserMessage(uiFiles, tokens) }],
+    messages: [{ role: 'user', content: buildUserMessage(uiFiles, tokens, userPrompt) }],
   });
 
   const text = response.content
