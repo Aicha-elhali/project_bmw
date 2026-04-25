@@ -1,15 +1,20 @@
 /**
- * Phase 5 — Output Builder (BMW iDrive Console Screen)
+ * Phase 5 — Output Builder (BMW HMI Design System)
  *
  * Writes the generated React components + Vite scaffolding.
- * Dynamically adds npm packages and HTML head tags based on
- * the API config resolved from detected component types.
+ * Includes BMW HMI Design System CSS variables, icon library, and Inter font.
+ * Dynamically adds npm packages and HTML head tags based on API config.
  *
  *   cd output && npm install && npm run dev
  */
 
-import { mkdir, writeFile, rm } from 'fs/promises';
-import { join, dirname }        from 'path';
+import { mkdir, writeFile, rm, copyFile } from 'fs/promises';
+import { join, dirname, resolve }          from 'path';
+import { fileURLToPath }                   from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const HMI_DIR = resolve(__dirname, '..', '..', 'BMW HMI Design System');
+const HMI_ESM_DIR = resolve(__dirname, '..', 'hmi');
 
 // ---------------------------------------------------------------------------
 // Dynamic Vite scaffolding builders
@@ -25,16 +30,21 @@ function buildIndexHtml(headTags = []) {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=1920, initial-scale=1.0" />
-    <title>BMW iDrive Navigation</title>${extraHead}
+    <title>BMW HMI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/bmw-hmi/colors_and_type.css" />${extraHead}
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-      html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+      html, body { width: 100%; height: 100%; overflow: hidden; background: #0A1428; }
       #root { width: 100vw; height: 100vh; overflow: hidden; }
     </style>
   </head>
-  <body>
+  <body class="bmw-root">
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script src="/bmw-hmi/icons.js"><\/script>
+    <script type="module" src="/src/main.jsx"><\/script>
   </body>
 </html>
 `;
@@ -42,7 +52,7 @@ function buildIndexHtml(headTags = []) {
 
 function buildPackageJson(extraDependencies = {}) {
   return JSON.stringify({
-    name: 'bmw-idrive-navigation',
+    name: 'bmw-hmi-prototype',
     version: '1.0.0',
     type: 'module',
     scripts: {
@@ -66,31 +76,14 @@ const MAIN_JSX = `import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 
-// BMW iDrive global styles
 const globalStyles = [
   '@font-face {',
-  "  font-family: 'bmwTypeNextWeb';",
-  "  src: local('Arial');",
-  '  font-weight: 300;',
-  '  font-style: normal;',
-  '}',
-  '@font-face {',
-  "  font-family: 'bmwTypeNextWeb';",
-  "  src: local('Arial');",
-  '  font-weight: 400;',
-  '  font-style: normal;',
-  '}',
-  '@font-face {',
-  "  font-family: 'bmwTypeNextWeb';",
-  "  src: local('Arial');",
-  '  font-weight: 500;',
-  '  font-style: normal;',
-  '}',
-  '@font-face {',
-  "  font-family: 'bmwTypeNextWeb';",
-  "  src: local('Arial');",
-  '  font-weight: 700;',
-  '  font-style: normal;',
+  "  font-family: 'BMW Type Next';",
+  '  font-display: swap;',
+  '  font-weight: 100 900;',
+  "  src: local('BMW Type Next'),",
+  "       local('BMWTypeNext'),",
+  "       url('https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2') format('woff2');",
   '}',
   '* {',
   '  box-sizing: border-box;',
@@ -102,11 +95,12 @@ const globalStyles = [
   '  font-size: 16px;',
   '  -webkit-font-smoothing: antialiased;',
   '  -moz-osx-font-smoothing: grayscale;',
+  '  text-rendering: optimizeLegibility;',
   '}',
   'body {',
-  '  font-family: "bmwTypeNextWeb", "Arial", "Helvetica", sans-serif;',
-  '  font-weight: 300;',
-  '  background-color: #000000;',
+  '  font-family: "BMW Type Next", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;',
+  '  font-weight: 400;',
+  '  background-color: #0A1428;',
   '  color: #FFFFFF;',
   '  width: 100vw;',
   '  height: 100vh;',
@@ -166,10 +160,10 @@ export default defineConfig({
   server: {
     open: true,
   },
+  publicDir: 'public',
 });
 `;
 
-// Fallback App.jsx when Claude didn't generate one
 function buildFallbackApp(componentFiles) {
   const imports = componentFiles
     .filter(f => f !== 'App.jsx' && f !== 'main.jsx' && !f.includes('/'))
@@ -194,10 +188,10 @@ const App = () => {
       flexDirection: 'column',
       width: '100vw',
       height: '100vh',
-      backgroundColor: '#0D0D0D',
+      backgroundColor: '#0A1428',
       color: '#FFFFFF',
-      fontFamily: '"bmwTypeNextWeb", "Arial", "Helvetica", sans-serif',
-      fontWeight: '300',
+      fontFamily: '"BMW Type Next", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+      fontWeight: '400',
       overflow: 'hidden',
     }}>
 ${usages}
@@ -213,13 +207,6 @@ export default App;
 // Main writer
 // ---------------------------------------------------------------------------
 
-/**
- * Write all generated files to the output directory.
- * @param {Map<string, string>} generatedFiles — filename → code from Phase 4
- * @param {string} outputDir  — destination path
- * @param {object} apiConfig  — resolved API config (packages, headTags)
- * @returns {Promise<string[]>} list of written file paths
- */
 function isValidComponent(code) {
   return code.includes('export default') && code.includes('import') && code.length > 80;
 }
@@ -232,7 +219,7 @@ const ${componentName} = ({ style: overrideStyle, children }) => {
   return (
     <div style={{
       boxSizing: 'border-box',
-      fontFamily: '"bmwTypeNextWeb", "Arial", "Helvetica", sans-serif',
+      fontFamily: '"BMW Type Next", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
       ...overrideStyle,
     }}>
       {children}
@@ -249,8 +236,94 @@ function collectImports(code) {
   return [...matches].map(m => m[1]);
 }
 
-export async function writeOutput(generatedFiles, outputDir, apiConfig = {}) {
-  // Fix broken stubs: replace files without valid exports
+/**
+ * Copy BMW HMI Design System assets to output/public/bmw-hmi/
+ */
+async function copyHMIAssets(outputDir) {
+  const publicDir = join(outputDir, 'public', 'bmw-hmi');
+  await mkdir(publicDir, { recursive: true });
+
+  const assets = [
+    { src: join(HMI_DIR, 'colors_and_type.css'), dest: join(publicDir, 'colors_and_type.css') },
+    { src: join(HMI_DIR, 'assets', 'icons.js'),  dest: join(publicDir, 'icons.js') },
+  ];
+
+  for (const { src, dest } of assets) {
+    try {
+      await copyFile(src, dest);
+    } catch (e) {
+      console.warn(`  ⚠  Could not copy HMI asset ${src}: ${e.message}`);
+    }
+  }
+
+  const roundelDest = join(publicDir, 'bmw-roundel.png');
+  try {
+    await copyFile(join(HMI_DIR, 'assets', 'bmw-roundel.png'), roundelDest);
+  } catch (_) {
+    try {
+      await copyFile(join(HMI_DIR, 'uploads', 'BMWLogo.png'), roundelDest);
+    } catch (e) {
+      console.warn(`  ⚠  Could not copy BMW roundel: ${e.message}`);
+    }
+  }
+
+  return publicDir;
+}
+
+/**
+ * Copy pre-built HMI Chrome ESM components to output/src/hmi/
+ */
+async function copyHMIComponents(outputDir) {
+  const hmiOutDir = join(outputDir, 'src', 'hmi');
+  await mkdir(hmiOutDir, { recursive: true });
+
+  const files = ['BMWIcons.jsx', 'HMIChrome.jsx'];
+  for (const file of files) {
+    try {
+      await copyFile(join(HMI_ESM_DIR, file), join(hmiOutDir, file));
+    } catch (e) {
+      console.warn(`  ⚠  Could not copy HMI component ${file}: ${e.message}`);
+    }
+  }
+  return files.map(f => `src/hmi/${f}`);
+}
+
+/**
+ * Write all generated files to the output directory.
+ * @param {Map<string, string>} frontendFiles — filename → code (components, App.jsx)
+ * @param {string} outputDir  — destination path
+ * @param {object} apiConfig  — resolved API config (packages, headTags)
+ * @param {object} [extras]
+ * @param {Map<string, string>} [extras.backendFiles] — services/hooks/context files
+ * @param {string} [extras.interfaceDoc] — INTERFACE.md content
+ * @returns {Promise<string[]>} list of written file paths
+ */
+export async function writeOutput(frontendFiles, outputDir, apiConfig = {}, extras = {}) {
+  const { backendFiles, interfaceDoc } = extras;
+
+  // Normalize keys: strip all src/ prefixes to prevent double-nesting (output/src/src/)
+  function normalizeKey(key) {
+    let k = key;
+    while (k.startsWith('src/')) k = k.slice(4);
+    if (k.startsWith('components/App.jsx')) k = 'App.jsx';
+    return k;
+  }
+
+  const normalizedFrontend = new Map();
+  for (const [f, code] of frontendFiles) {
+    const normalized = normalizeKey(f);
+    if (f !== normalized) console.log(`  [builder] normalized key: "${f}" → "${normalized}"`);
+    normalizedFrontend.set(normalized, code);
+  }
+  console.log(`  [builder] frontend keys: ${[...normalizedFrontend.keys()].join(', ')}`);
+
+  // Merge backend + frontend into one map for validation
+  const generatedFiles = new Map();
+  if (backendFiles) {
+    for (const [f, code] of backendFiles) generatedFiles.set(normalizeKey(f), code);
+  }
+  for (const [f, code] of normalizedFrontend) generatedFiles.set(f, code);
+
   for (const [filename, code] of generatedFiles) {
     if (filename.endsWith('.jsx') && !isValidComponent(code)) {
       const name = filename.replace(/\.jsx$/, '').split('/').pop();
@@ -258,7 +331,6 @@ export async function writeOutput(generatedFiles, outputDir, apiConfig = {}) {
     }
   }
 
-  // Fix missing files: if a component imports Foo.jsx but it doesn't exist, generate it
   const allNames = new Set([...generatedFiles.keys()].map(f => f.replace(/\.jsx?$/, '').split('/').pop()));
   for (const [, code] of [...generatedFiles.entries()]) {
     for (const imported of collectImports(code)) {
@@ -269,13 +341,20 @@ export async function writeOutput(generatedFiles, outputDir, apiConfig = {}) {
     }
   }
 
-  // Clean and recreate output dir
   await rm(outputDir, { recursive: true, force: true });
   await mkdir(join(outputDir, 'src', 'components'), { recursive: true });
 
   const written = [];
 
-  // Vite scaffolding — dynamic package.json and HTML head
+  // Copy BMW HMI Design System assets to public/
+  await copyHMIAssets(outputDir);
+  written.push('public/bmw-hmi/colors_and_type.css', 'public/bmw-hmi/icons.js');
+
+  // Copy pre-built HMI Chrome components to src/hmi/
+  const hmiFiles = await copyHMIComponents(outputDir);
+  written.push(...hmiFiles);
+
+  // Vite scaffolding
   const indexHtml   = buildIndexHtml(apiConfig.headTags || []);
   const packageJson = buildPackageJson(apiConfig.packages || {});
 
@@ -284,23 +363,36 @@ export async function writeOutput(generatedFiles, outputDir, apiConfig = {}) {
   await writeFile(join(outputDir, 'package.json'),    packageJson, 'utf-8');
   written.push('index.html', 'vite.config.js', 'package.json');
 
-  // Separate App/main from other files
-  const fileEntries = [...generatedFiles.entries()];
-  const appFile   = fileEntries.find(([f]) => f === 'App.jsx');
-  const mainFile  = fileEntries.find(([f]) => f === 'main.jsx');
-  const otherFiles = fileEntries.filter(([f]) => f !== 'App.jsx' && f !== 'main.jsx');
+  // Write backend files (services/, hooks/, context/)
+  if (backendFiles && backendFiles.size > 0) {
+    for (const [rawFilename, code] of backendFiles) {
+      const filename = normalizeKey(rawFilename);
+      const dest = join(outputDir, 'src', filename);
+      await mkdir(dirname(dest), { recursive: true });
+      await writeFile(dest, code, 'utf-8');
+      written.push(`src/${filename}`);
+    }
+  }
 
-  // Track which filenames are flat (go to components/) vs have paths
+  // Write INTERFACE.md for debugging
+  if (interfaceDoc) {
+    await writeFile(join(outputDir, 'src', 'INTERFACE.md'), interfaceDoc, 'utf-8');
+    written.push('src/INTERFACE.md');
+  }
+
+  // Separate App/main from other frontend files
+  const fileEntries = [...normalizedFrontend.entries()];
+  const appFile   = fileEntries.find(([f]) => f === 'App.jsx' || f === 'components/App.jsx');
+  const otherFiles = fileEntries.filter(([f]) => f !== 'App.jsx' && f !== 'main.jsx' && f !== 'components/App.jsx');
+  console.log(`  [builder] appFile found: ${appFile ? appFile[0] + ' (' + appFile[1].length + ' chars)' : 'NO — using fallback'}`);
+
   const componentFileNames = new Set();
 
-  // Write component, service, hook, and context files
   for (const [filename, code] of otherFiles) {
     let dest;
     if (filename.includes('/')) {
-      // Subdirectory path: services/foo.js, hooks/useBar.js, context/Ctx.jsx
       dest = join(outputDir, 'src', filename);
     } else {
-      // Flat file → components directory
       dest = join(outputDir, 'src', 'components', filename);
       componentFileNames.add(filename.replace(/\.jsx?$/, ''));
     }
@@ -310,12 +402,10 @@ export async function writeOutput(generatedFiles, outputDir, apiConfig = {}) {
     written.push(`src/${filename.includes('/') ? filename : 'components/' + filename}`);
   }
 
-  // Write or generate App.jsx
   const appCode = appFile
     ? appFile[1]
     : buildFallbackApp(otherFiles.map(([f]) => f));
 
-  // Fix import paths: only rewrite imports for files in components/
   const fixedApp = appCode.replace(
     /from ['"]\.\/(\w+)(\.jsx?)['"]/g,
     (match, name, ext) => {
@@ -328,9 +418,24 @@ export async function writeOutput(generatedFiles, outputDir, apiConfig = {}) {
   await writeFile(join(outputDir, 'src', 'App.jsx'), fixedApp, 'utf-8');
   written.push('src/App.jsx');
 
-  // Always use our own main.jsx — Claude's version often breaks the entry point
   await writeFile(join(outputDir, 'src', 'main.jsx'), MAIN_JSX, 'utf-8');
   written.push('src/main.jsx');
+
+  // Write .env.example and .env if APIs need environment variables
+  const envVars = apiConfig.envVars || {};
+  if (Object.keys(envVars).length > 0) {
+    const envExample = Object.entries(envVars)
+      .map(([key, desc]) => `# ${desc}\n${key}=`)
+      .join('\n\n') + '\n';
+    await writeFile(join(outputDir, '.env.example'), envExample, 'utf-8');
+    written.push('.env.example');
+
+    const envDefaults = Object.keys(envVars)
+      .map(key => `${key}=`)
+      .join('\n') + '\n';
+    await writeFile(join(outputDir, '.env'), envDefaults, 'utf-8');
+    written.push('.env');
+  }
 
   return written;
 }

@@ -107,3 +107,51 @@ export async function getFigmaFrame(fileKey, nodeId, token) {
   const raw = await fetchFigmaFrame(fileKey, nodeId, token);
   return extractSupportedNodes(raw);
 }
+
+/**
+ * Fetch multiple frames in a single Figma API request.
+ * @param {string}   fileKey  — Figma file key
+ * @param {string[]} nodeIds  — Array of node IDs ("16:4", "16:5", …)
+ * @param {string}   token    — Figma personal access token
+ * @returns {Promise<Map<string, object>>} Map of nodeId → extracted frame
+ */
+export async function getFigmaFrames(fileKey, nodeIds, token) {
+  const normalizedIds = nodeIds.map(id => id.replace('-', ':'));
+  const encodedIds = normalizedIds.map(encodeURIComponent).join(',');
+
+  const url = `${FIGMA_API_BASE}/files/${fileKey}/nodes?ids=${encodedIds}&geometry=paths`;
+
+  let response;
+  try {
+    response = await fetch(url, {
+      headers: { 'X-Figma-Token': token },
+    });
+  } catch (err) {
+    throw new Error(`Figma API unreachable: ${err.message}`);
+  }
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Figma API error ${response.status}: ${body}`);
+  }
+
+  const data = await response.json();
+  const results = new Map();
+
+  for (const id of normalizedIds) {
+    const node = data.nodes?.[id];
+    if (!node) {
+      console.warn(`  ⚠  Frame "${id}" not found in file, skipping`);
+      continue;
+    }
+    results.set(id, extractSupportedNodes(node.document));
+  }
+
+  if (results.size === 0) {
+    throw new Error(
+      `None of the requested frames [${normalizedIds.join(', ')}] found in file "${fileKey}".`
+    );
+  }
+
+  return results;
+}

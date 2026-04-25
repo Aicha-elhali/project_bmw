@@ -1,12 +1,12 @@
 /**
- * Phase 3 — Design Token Engine (BMW iDrive Navigation)
+ * Phase 3 — Design Token Engine (BMW HMI Design System)
  *
- * Maps navigation-specific component types to BMW iDrive design tokens.
- * Optimized for automotive center console displays:
- * - Dark theme (OLED-friendly, reduces glare)
- * - Large touch targets (driving safety)
- * - High contrast (readability in varying light)
- * - bmwTypeNextWeb font, weight 300 (light) signature
+ * Maps component types to BMW HMI Design System tokens.
+ * Uses the Operating System X / Panoramic Vision visual language:
+ * - Blue-tinted dark surfaces (#0A1428 canvas, NOT neutral blacks)
+ * - Card gradients with glass-feel grain
+ * - 64px touch targets (driving-glove sized)
+ * - BMW Type Next / Inter font stack
  */
 
 import { readFile } from 'fs/promises';
@@ -26,20 +26,21 @@ export async function loadTokens(tokensPath) {
 }
 
 // ---------------------------------------------------------------------------
-// Component type → BMW iDrive navigation token mapping
+// Component type → BMW HMI token mapping
 // ---------------------------------------------------------------------------
 
 function buildStyleForType(type, tokens, node) {
   const { colors, spacing, typography, fontWeights, borderRadius, shadows, transitions } = tokens;
 
+  const fontStack = typography.body.family;
+
   const base = {
     boxSizing:  'border-box',
-    fontFamily: typography.body.family,
-    fontWeight: fontWeights.light,
+    fontFamily: fontStack,
+    fontWeight: fontWeights.regular,
   };
 
   switch (type) {
-    // ── Full screen container ─────────────────────────────────────────────
     case 'screen':
       return {
         ...base,
@@ -53,7 +54,6 @@ function buildStyleForType(type, tokens, node) {
         position:        'relative',
       };
 
-    // ── Status bar (top: time, signal, temp) ──────────────────────────────
     case 'statusBar':
       return {
         ...base,
@@ -61,52 +61,55 @@ function buildStyleForType(type, tokens, node) {
         flexDirection:   'row',
         alignItems:      'center',
         justifyContent:  'space-between',
-        backgroundColor: colors.background,
+        backgroundColor: 'transparent',
+        backdropFilter:  'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         color:           colors.textSecondary,
         padding:         `0 ${spacing.lg}`,
         width:           '100%',
-        height:          spacing.statusBarHeight,
-        minHeight:       spacing.statusBarHeight,
-        fontSize:        typography.caption.size,
+        height:          spacing.headerHeight,
+        minHeight:       spacing.headerHeight,
+        fontSize:        typography.statusLabel.size,
         fontWeight:      fontWeights.regular,
-        borderBottom:    `1px solid ${colors.divider}`,
+        letterSpacing:   typography.statusLabel.letterSpacing,
+        textTransform:   'uppercase',
+        borderBottom:    `1px solid ${colors.border}`,
         flexShrink:      '0',
         zIndex:          '100',
+        position:        'relative',
       };
 
-    // ── Map area ──────────────────────────────────────────────────────────
     case 'map':
       return {
         ...base,
         flex:            '1',
         position:        'relative',
-        backgroundColor: colors.mapDark,
+        backgroundColor: colors.mapNight,
         overflow:        'hidden',
         display:         'flex',
         alignItems:      'center',
         justifyContent:  'center',
-        color:           colors.textMuted,
+        color:           colors.textTertiary,
         fontSize:        typography.heading2.size,
       };
 
-    // ── Route info panel ──────────────────────────────────────────────────
     case 'routeInfo':
       return {
         ...base,
         display:         'flex',
         flexDirection:   'column',
         gap:             spacing.md,
-        backgroundColor: colors.backgroundElevated,
+        background:      colors.cardGradient,
         borderRadius:    borderRadius.lg,
         padding:         spacing.lg,
-        boxShadow:       shadows.lg,
+        boxShadow:       `${shadows.card}, ${shadows.innerCard}`,
         color:           colors.text,
         width:           spacing.panelWidth,
         maxHeight:       '80%',
         overflow:        'auto',
+        position:        'relative',
       };
 
-    // ── Turn-by-turn indicator ────────────────────────────────────────────
     case 'turnIndicator':
       return {
         ...base,
@@ -114,14 +117,14 @@ function buildStyleForType(type, tokens, node) {
         flexDirection:   'row',
         alignItems:      'center',
         gap:             spacing.md,
-        backgroundColor: colors.backgroundElevated,
+        background:      colors.cardGradient,
         borderRadius:    borderRadius.lg,
         padding:         `${spacing.md} ${spacing.lg}`,
-        boxShadow:       shadows.md,
+        boxShadow:       `${shadows.card}, ${shadows.innerCard}`,
         color:           colors.text,
+        position:        'relative',
       };
 
-    // ── Search bar ────────────────────────────────────────────────────────
     case 'searchBar':
       return {
         ...base,
@@ -129,19 +132,18 @@ function buildStyleForType(type, tokens, node) {
         flexDirection:   'row',
         alignItems:      'center',
         gap:             spacing.sm,
-        backgroundColor: colors.backgroundOverlay,
+        backgroundColor: colors.backgroundElevated,
         color:           colors.text,
         padding:         `${spacing.sm} ${spacing.lg}`,
-        borderRadius:    borderRadius.xl,
+        borderRadius:    borderRadius['2xl'],
         border:          `1px solid ${colors.border}`,
         fontSize:        typography.body.size,
         fontWeight:      fontWeights.regular,
-        minHeight:       spacing.touchTargetMin,
+        minHeight:       spacing.touchTarget,
         width:           '100%',
         transition:      `border-color ${transitions.fast}`,
       };
 
-    // ── Bottom dock / navigation bar ──────────────────────────────────────
     case 'dock':
       return {
         ...base,
@@ -151,16 +153,15 @@ function buildStyleForType(type, tokens, node) {
         justifyContent:  'center',
         gap:             spacing.xl,
         backgroundColor: colors.background,
-        borderTop:       `1px solid ${colors.divider}`,
+        borderTop:       `1px solid ${colors.border}`,
         padding:         `${spacing.sm} ${spacing.xxl}`,
         width:           '100%',
-        height:          spacing.dockHeight,
-        minHeight:       spacing.dockHeight,
+        height:          spacing.footerHeight,
+        minHeight:       spacing.footerHeight,
         flexShrink:      '0',
         zIndex:          '100',
       };
 
-    // ── Dock item (icon + label) ──────────────────────────────────────────
     case 'dockItem':
       return {
         ...base,
@@ -169,18 +170,19 @@ function buildStyleForType(type, tokens, node) {
         alignItems:      'center',
         justifyContent:  'center',
         gap:             spacing.xs,
-        color:           colors.textMuted,
+        color:           colors.textTertiary,
         cursor:          'pointer',
-        padding:         spacing.xs,
+        padding:         spacing.sm,
         minWidth:        spacing.touchTarget,
         minHeight:       spacing.touchTarget,
         borderRadius:    borderRadius.md,
-        fontSize:        typography.caption.size,
-        fontWeight:      fontWeights.medium,
+        fontSize:        typography.label.size,
+        fontWeight:      fontWeights.regular,
+        letterSpacing:   typography.label.letterSpacing,
+        textTransform:   'uppercase',
         transition:      `color ${transitions.fast}, background-color ${transitions.fast}`,
       };
 
-    // ── Side panel ────────────────────────────────────────────────────────
     case 'sidePanel':
       return {
         ...base,
@@ -188,7 +190,7 @@ function buildStyleForType(type, tokens, node) {
         flexDirection:   'column',
         gap:             spacing.sm,
         backgroundColor: colors.backgroundElevated,
-        borderLeft:      `1px solid ${colors.divider}`,
+        borderLeft:      `1px solid ${colors.border}`,
         padding:         spacing.lg,
         width:           spacing.panelWidth,
         height:          '100%',
@@ -196,7 +198,6 @@ function buildStyleForType(type, tokens, node) {
         overflowY:       'auto',
       };
 
-    // ── Media player widget ───────────────────────────────────────────────
     case 'mediaPlayer':
       return {
         ...base,
@@ -204,15 +205,15 @@ function buildStyleForType(type, tokens, node) {
         flexDirection:   'row',
         alignItems:      'center',
         gap:             spacing.md,
-        backgroundColor: colors.backgroundElevated,
+        background:      colors.cardGradient,
         borderRadius:    borderRadius.lg,
         padding:         spacing.md,
-        boxShadow:       shadows.md,
+        boxShadow:       `${shadows.card}, ${shadows.innerCard}`,
         color:           colors.text,
         minHeight:       spacing.touchTarget,
+        position:        'relative',
       };
 
-    // ── Climate control ───────────────────────────────────────────────────
     case 'climateControl':
       return {
         ...base,
@@ -221,13 +222,13 @@ function buildStyleForType(type, tokens, node) {
         alignItems:      'center',
         justifyContent:  'space-between',
         gap:             spacing.lg,
-        backgroundColor: colors.backgroundElevated,
-        borderRadius:    borderRadius.lg,
+        backgroundColor: colors.background,
         padding:         `${spacing.md} ${spacing.lg}`,
         color:           colors.text,
+        fontSize:        typography.climateTemp.size,
+        fontWeight:      typography.climateTemp.weight,
       };
 
-    // ── Quick action button (floating on map) ─────────────────────────────
     case 'quickAction':
       return {
         ...base,
@@ -236,16 +237,15 @@ function buildStyleForType(type, tokens, node) {
         justifyContent:  'center',
         width:           spacing.touchTarget,
         height:          spacing.touchTarget,
-        backgroundColor: colors.backgroundOverlay,
+        background:      colors.cardGradient,
         borderRadius:    borderRadius.full,
-        boxShadow:       shadows.md,
+        boxShadow:       `${shadows.card}, ${shadows.innerCard}`,
         color:           colors.text,
         cursor:          'pointer',
-        border:          `1px solid ${colors.border}`,
+        border:          'none',
         transition:      `background-color ${transitions.fast}`,
       };
 
-    // ── POI list ──────────────────────────────────────────────────────────
     case 'poiList':
       return {
         ...base,
@@ -254,12 +254,11 @@ function buildStyleForType(type, tokens, node) {
         gap:             '1px',
         width:           '100%',
         color:           colors.text,
-        backgroundColor: colors.divider,
+        backgroundColor: colors.border,
         borderRadius:    borderRadius.md,
         overflow:        'hidden',
       };
 
-    // ── POI item ──────────────────────────────────────────────────────────
     case 'poiItem':
       return {
         ...base,
@@ -275,24 +274,23 @@ function buildStyleForType(type, tokens, node) {
         transition:      `background-color ${transitions.fast}`,
       };
 
-    // ── Speed limit indicator ─────────────────────────────────────────────
     case 'speedLimit':
       return {
         ...base,
         display:         'flex',
         alignItems:      'center',
         justifyContent:  'center',
-        width:           '3.5rem',
-        height:          '3.5rem',
+        width:           '56px',
+        height:          '56px',
         borderRadius:    borderRadius.full,
         border:          `3px solid ${colors.error}`,
         backgroundColor: colors.text,
         color:           colors.background,
-        fontSize:        typography.heading2.size,
+        fontSize:        typography.heading3.size,
         fontWeight:      fontWeights.bold,
+        fontVariantNumeric: 'tabular-nums',
       };
 
-    // ── Vehicle info widget ───────────────────────────────────────────────
     case 'vehicleInfo':
       return {
         ...base,
@@ -300,21 +298,22 @@ function buildStyleForType(type, tokens, node) {
         flexDirection:   'row',
         alignItems:      'center',
         gap:             spacing.lg,
-        backgroundColor: colors.backgroundElevated,
+        background:      colors.cardGradient,
         borderRadius:    borderRadius.lg,
         padding:         `${spacing.md} ${spacing.lg}`,
+        boxShadow:       `${shadows.card}, ${shadows.innerCard}`,
         color:           colors.text,
-        fontSize:        typography.bodySmall.size,
+        fontSize:        typography.bodySecondary.size,
+        position:        'relative',
       };
 
-    // ── Button ────────────────────────────────────────────────────────────
     case 'button':
       return {
         ...base,
         display:         'inline-flex',
         alignItems:      'center',
         justifyContent:  'center',
-        gap:             spacing.xs,
+        gap:             spacing.sm,
         backgroundColor: colors.primary,
         color:           '#FFFFFF',
         padding:         `${spacing.sm} ${spacing.xl}`,
@@ -323,20 +322,19 @@ function buildStyleForType(type, tokens, node) {
         cursor:          'pointer',
         fontSize:        typography.body.size,
         fontWeight:      fontWeights.medium,
-        minHeight:       spacing.touchTargetMin,
+        minHeight:       spacing.touchTarget,
         transition:      `background-color ${transitions.fast}`,
         whiteSpace:      'nowrap',
       };
 
-    // ── Icon button ───────────────────────────────────────────────────────
     case 'iconButton':
       return {
         ...base,
         display:         'inline-flex',
         alignItems:      'center',
         justifyContent:  'center',
-        width:           spacing.touchTargetMin,
-        height:          spacing.touchTargetMin,
+        width:           spacing.touchTarget,
+        height:          spacing.touchTarget,
         backgroundColor: 'transparent',
         color:           colors.text,
         borderRadius:    borderRadius.full,
@@ -346,7 +344,6 @@ function buildStyleForType(type, tokens, node) {
         transition:      `background-color ${transitions.fast}`,
       };
 
-    // ── Heading ───────────────────────────────────────────────────────────
     case 'heading':
       return {
         ...base,
@@ -357,7 +354,6 @@ function buildStyleForType(type, tokens, node) {
         margin:     '0',
       };
 
-    // ── Text ──────────────────────────────────────────────────────────────
     case 'text':
       return {
         ...base,
@@ -367,86 +363,80 @@ function buildStyleForType(type, tokens, node) {
         margin:     '0',
       };
 
-    // ── Icon ──────────────────────────────────────────────────────────────
     case 'icon':
       return {
         ...base,
         display:        'inline-flex',
         alignItems:     'center',
         justifyContent: 'center',
-        width:          '1.5rem',
-        height:         '1.5rem',
+        width:          '24px',
+        height:         '24px',
         color:          colors.text,
       };
 
-    // ── Divider ───────────────────────────────────────────────────────────
     case 'divider':
       return {
         width:           '100%',
         height:          '1px',
-        backgroundColor: colors.divider,
+        backgroundColor: colors.border,
         border:          'none',
         margin:          `${spacing.sm} 0`,
         flexShrink:      '0',
       };
 
-    // ── Card ──────────────────────────────────────────────────────────────
     case 'card':
       return {
         ...base,
         display:         'flex',
         flexDirection:   node.layout?.direction === 'row' ? 'row' : 'column',
         gap:             spacing.md,
-        backgroundColor: colors.backgroundElevated,
+        background:      colors.cardGradient,
         borderRadius:    borderRadius.lg,
         padding:         spacing.lg,
-        boxShadow:       shadows.sm,
+        boxShadow:       `${shadows.card}, ${shadows.innerCard}`,
         color:           colors.text,
         overflow:        'hidden',
+        position:        'relative',
       };
 
-    // ── Toggle ────────────────────────────────────────────────────────────
     case 'toggle':
       return {
         ...base,
         display:         'inline-flex',
         alignItems:      'center',
-        width:           '3.25rem',
-        height:          '2rem',
-        backgroundColor: colors.surface,
+        width:           '52px',
+        height:          '32px',
+        backgroundColor: colors.backgroundElevatedStrong,
         borderRadius:    borderRadius.full,
-        padding:         '0.25rem',
+        padding:         '4px',
         cursor:          'pointer',
         transition:      `background-color ${transitions.fast}`,
       };
 
-    // ── Slider ────────────────────────────────────────────────────────────
     case 'slider':
       return {
         ...base,
         display:    'flex',
         alignItems: 'center',
         width:      '100%',
-        height:     spacing.touchTargetMin,
+        height:     spacing.touchTarget,
         cursor:     'pointer',
       };
 
-    // ── Image placeholder ─────────────────────────────────────────────────
     case 'image':
       return {
         ...base,
         display:         'flex',
         alignItems:      'center',
         justifyContent:  'center',
-        backgroundColor: colors.surface,
+        backgroundColor: colors.backgroundElevated,
         borderRadius:    borderRadius.md,
         width:           '100%',
         height:          node.layout?.height ? `${node.layout.height}px` : 'auto',
         objectFit:       'cover',
-        color:           colors.textMuted,
+        color:           colors.textTertiary,
       };
 
-    // ── Generic container ─────────────────────────────────────────────────
     case 'container':
     default:
       return {

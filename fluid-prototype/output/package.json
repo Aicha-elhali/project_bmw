@@ -1,5 +1,5 @@
 {
-  "name": "bmw-idrive-navigation",
+  "name": "bmw-hmi-prototype",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
@@ -10,8 +10,8 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "leaflet": "^1.9.4",
-    "react-leaflet": "^4.2.1"
+    "maplibre-gl": "^4.7.1",
+    "react-map-gl": "^7.1.7"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.0",

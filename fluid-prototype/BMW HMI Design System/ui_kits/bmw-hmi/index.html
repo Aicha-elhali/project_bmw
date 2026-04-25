@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>BMW HMI · UI Kit</title>
+<link rel="stylesheet" href="../../colors_and_type.css"/>
+<style>
+  html,body{margin:0;padding:0;background:#050B17;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:"BMW Type Next",Inter,system-ui,sans-serif;color:#fff;overflow:hidden}
+  .stage{display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px}
+  .scene-picker{display:flex;gap:8px;background:rgba(27,42,69,0.6);padding:6px;border-radius:999px}
+  .scene-picker button{background:transparent;color:#A8B5C8;border:0;padding:10px 18px;border-radius:999px;cursor:pointer;font-size:14px;letter-spacing:0.06em;text-transform:uppercase}
+  .scene-picker button.active{background:#1C69D4;color:#fff;box-shadow:0 0 16px rgba(28,105,212,0.5)}
+  .footnote{font-size:12px;color:#5C6B82;letter-spacing:0.04em;max-width:1600px;text-align:center;padding:0 20px}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../assets/icons.js"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="HMIChrome.jsx"></script>
+<script type="text/babel" src="HMIScreens.jsx"></script>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+function App() {
+  const [scene, setScene] = useState("map");
+  const [tab, setTab] = useState("Charging");
+
+  // Auto-scale display to viewport
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const fit = () => {
+      const w = window.innerWidth - 40;
+      const h = window.innerHeight - 80;  // leave room for footnote
+      setScale(Math.min(w/1600, h/720, 1));
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, []);
+
+  const scenes = [
+    { id: "map",   label: "Map" },
+    { id: "climate", label: "Climate" },
+    { id: "notifications", label: "Notifications" },
+    { id: "media", label: "Media" },
+  ];
+
+  const activeFooterTab = scene === "map" ? "home"
+    : scene === "climate" ? "fan"
+    : scene === "media" ? "media"
+    : scene === "notifications" ? "apps" : "home";
+
+  return (
+    <div className="stage">
+      <div data-screen-label="BMW HMI Display" style={{ transform: `scale(${scale})`, transformOrigin: "top center" }}>
+        <HMIDisplay width={1600} height={720}>
+          {scene === "map" && <MapScreen activeTab={tab} setActiveTab={setTab}/>}
+          {scene === "climate" && <ClimateScreen/>}
+          {scene === "notifications" && <NotificationsScreen/>}
+          {scene === "media" && <MediaScreen/>}
+
+          {scene !== "map" && (
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,#0E1B30,#0A1428)", zIndex: -1 }}/>
+          )}
+
+          <HMIHeader
+            title={scene === "notifications" ? "Notification overview" : scene === "climate" ? "Climate comfort" : scene === "media" ? "Media" : null}
+          />
+          <LeftSideSlot/>
+          {scene === "map" && <RightSideSlot showPark={false}/>}
+          <HMIFooter active={activeFooterTab} onTab={(id) => {
+            if (id === "fan") setScene("climate");
+            else if (id === "media") setScene("media");
+            else if (id === "apps") setScene("notifications");
+            else if (id === "home") setScene("map");
+          }} chamferReserve={140}/>
+        </HMIDisplay>
+      </div>
+      <div className="footnote">
+        Scaled recreation of the BMW Operating System X central display (chamfered bottom-right corner). Click footer icons (Home / Fan / Apps / Music) to navigate scenes.
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

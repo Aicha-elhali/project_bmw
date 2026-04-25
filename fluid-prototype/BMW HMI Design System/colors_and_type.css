@@ -1,0 +1,316 @@
+/* =========================================================
+   BMW HMI Design System — Colors & Type
+   In-car infotainment ("Operating System X" style)
+   Dark, glass-morphism, BMW Electric Blue primary
+   ========================================================= */
+
+@font-face {
+  font-family: "BMW Type Next";
+  font-display: swap;
+  font-weight: 100 900;
+  src: local("BMW Type Next"),
+       local("BMWTypeNext"),
+       /* Fallback to Google Fonts: Inter (closest neutral humanist sans) */
+       url("https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2") format("woff2");
+}
+
+/* Google Fonts fallback (Inter) — closest match to BMW Type Next.
+   Substituted because BMW Type Next is a proprietary corporate
+   typeface and is not freely licensable. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;700&display=swap");
+
+:root {
+  /* ---------- BMW Blue scale (primary / interactive) ---------- */
+  --bmw-blue-50:  #E8F1FB;
+  --bmw-blue-100: #C5DBF5;
+  --bmw-blue-200: #8DBAEC;
+  --bmw-blue-300: #5599E2;
+  --bmw-blue-400: #2D7AE8;  /* hover */
+  --bmw-blue-500: #1C69D4;  /* base / interactive */
+  --bmw-blue-600: #1656B0;  /* pressed */
+  --bmw-blue-700: #10428A;
+  --bmw-blue-800: #0B2F63;
+  --bmw-blue-900: #071D3D;
+
+  /* ---------- Neutrals ---------- */
+  --neutral-0:   #FFFFFF;
+  --neutral-50:  #F2F4F8;
+  --neutral-100: #D8DEE8;
+  --neutral-200: #A8B5C8;
+  --neutral-300: #8C9BB0;
+  --neutral-400: #5C6B82;
+  --neutral-500: #3D4A60;
+  --neutral-600: #2A3548;
+  --neutral-700: #1B2638;
+  --neutral-800: #121B2A;
+  --neutral-900: #0A1428;
+  --neutral-950: #050B17;
+
+  /* ---------- Surfaces (no pure black, ever) ---------- */
+  --surface-canvas:           #0A1428;
+  --surface-canvas-alt:       #0E1B30;
+  --surface-map-night:        #0F1A2C;
+  --surface-map-night-alt:    #1A2840;
+  --surface-elevated:         #1B2A45;  /* default card */
+  --surface-elevated-alt:     #243757;  /* card top of gradient */
+  --surface-elevated-strong:  #2A4170;  /* active card */
+  --surface-elevated-accent:  #34538D;  /* selected card */
+
+  /* ---------- Status ---------- */
+  --status-warning:        #F0C040;
+  --status-warning-strong: #FFCC00;
+  --status-danger:         #E63946;
+  --status-danger-bright:  #FF4040;
+  --status-success:        #3CD278;
+  --status-info:           #5BA3FF;
+
+  /* ---------- Map palette ---------- */
+  --map-water:       #1A3A5F;
+  --map-road-minor:  #3A4A66;
+  --map-road-major:  #FFFFFF;
+  --map-highway:     #5BA3FF;
+  --map-park:        #1F3540;
+  --map-traffic-jam: #FF4040;
+  --map-route-line:  #5BA3FF;
+  --map-user-arrow:  #1C69D4;
+
+  /* ---------- Semantic — text ---------- */
+  --text-primary:    var(--neutral-0);
+  --text-secondary:  var(--neutral-200);
+  --text-tertiary:   var(--neutral-400);
+  --text-disabled:   var(--neutral-500);
+  --text-accent:     var(--status-info);
+  --text-on-accent:  var(--neutral-0);
+  --text-warning:    var(--status-warning);
+  --text-danger:     var(--status-danger);
+  --text-success:    var(--status-success);
+
+  /* ---------- Semantic — backgrounds ---------- */
+  --bg-default:        var(--surface-canvas);
+  --bg-alt:            var(--surface-canvas-alt);
+  --bg-map:            var(--surface-map-night);
+  --bg-surface:        var(--surface-elevated);
+  --bg-surface-strong: var(--surface-elevated-strong);
+  --bg-surface-accent: var(--bmw-blue-500);
+
+  /* Card gradient — top→bottom, glass feel */
+  --card-gradient: linear-gradient(180deg, #243757 0%, #1B2A45 100%);
+  --card-gradient-strong: linear-gradient(180deg, #34538D 0%, #2A4170 100%);
+  --card-gradient-accent: linear-gradient(180deg, #2D7AE8 0%, #1C69D4 100%);
+
+  /* ---------- Interactive ---------- */
+  --interactive-default:    var(--bmw-blue-500);
+  --interactive-hover:      var(--bmw-blue-400);
+  --interactive-pressed:    var(--bmw-blue-600);
+  --interactive-disabled:   var(--neutral-600);
+  --interactive-secondary:  var(--surface-elevated-alt);
+  --interactive-secondary-hover: var(--surface-elevated-strong);
+
+  /* ---------- Borders / dividers ---------- */
+  --border-default: rgba(255,255,255,0.08);
+  --border-strong:  rgba(255,255,255,0.16);
+  --border-focus:   var(--bmw-blue-400);
+
+  /* ---------- Type ---------- */
+  --font-primary: "BMW Type Next", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* font sizes (display-px, designed for ~12-inch HMI screen) */
+  --fs-2xs: 12px;
+  --fs-xs:  14px;
+  --fs-sm:  16px;
+  --fs-md:  18px;
+  --fs-lg:  20px;
+  --fs-xl:  22px;
+  --fs-2xl: 24px;
+  --fs-3xl: 28px;
+  --fs-4xl: 32px;
+  --fs-5xl: 36px;
+  --fs-6xl: 48px;
+  --fs-7xl: 64px;
+
+  /* weights */
+  --fw-thin:    100;
+  --fw-light:   300;
+  --fw-regular: 400;
+  --fw-medium:  500;
+  --fw-bold:    700;
+
+  /* tracking */
+  --ls-tight:  -0.01em;
+  --ls-normal: 0;
+  --ls-wide:   0.02em;
+  --ls-wider:  0.06em;
+
+  /* leading */
+  --lh-tight:   1.1;
+  --lh-snug:    1.25;
+  --lh-normal:  1.4;
+  --lh-relaxed: 1.6;
+
+  /* ---------- Spacing ---------- */
+  --space-0:    0;
+  --space-0_5:  2px;
+  --space-1:    4px;
+  --space-2:    8px;
+  --space-3:    12px;
+  --space-4:    16px;
+  --space-5:    20px;
+  --space-6:    24px;
+  --space-8:    32px;
+  --space-10:   40px;
+  --space-12:   48px;
+  --space-16:   64px;
+  --space-20:   80px;
+  --space-24:   96px;
+
+  /* layout */
+  --header-h:   48px;
+  --footer-h:   96px;   /* tall climate footer */
+  --side-slot-w: 80px;
+  --touch-target: 64px;
+  --touch-target-sm: 48px;
+
+  /* ---------- Radius ---------- */
+  --radius-none: 0;
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-2xl:  24px;
+  --radius-full: 999px;
+
+  /* ---------- Shadows / elevation ---------- */
+  --shadow-card:     0 2px 8px rgba(0,0,0,0.40);
+  --shadow-elevated: 0 4px 16px rgba(0,0,0,0.50);
+  --shadow-modal:    0 8px 32px rgba(0,0,0,0.60);
+  --glow-primary:    0 0 24px rgba(28,105,212,0.60);
+  --glow-warning:    0 0 16px rgba(240,192,64,0.40);
+  --glow-danger:     0 0 16px rgba(230,57,70,0.50);
+  --inner-card:      inset 0 1px 0 rgba(255,255,255,0.06);
+
+  /* ---------- Motion ---------- */
+  --dur-instant: 0ms;
+  --dur-fast:    150ms;
+  --dur-base:    250ms;
+  --dur-slow:    400ms;
+  --ease-standard:   cubic-bezier(0.4, 0.0, 0.2, 1);
+  --ease-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-accelerate: cubic-bezier(0.4, 0.0, 1, 1);
+}
+
+/* ============================================================
+   Base resets — assume dark canvas everywhere
+   ============================================================ */
+.bmw-root, .bmw-root * { box-sizing: border-box; }
+.bmw-root {
+  font-family: var(--font-primary);
+  color: var(--text-primary);
+  background: var(--bg-default);
+  font-size: var(--fs-xl);
+  line-height: var(--lh-normal);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ============================================================
+   Semantic typography presets
+   ============================================================ */
+.bmw-display {  /* hero numbers — speed, range */
+  font-size: var(--fs-7xl);
+  font-weight: var(--fw-thin);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-tight);
+}
+.bmw-h1 {       /* primary screen titles */
+  font-size: var(--fs-6xl);
+  font-weight: var(--fw-light);
+  line-height: var(--lh-tight);
+}
+.bmw-h2 {
+  font-size: var(--fs-5xl);
+  font-weight: var(--fw-light);
+  line-height: var(--lh-snug);
+}
+.bmw-h3 {       /* card heading, address */
+  font-size: var(--fs-4xl);
+  font-weight: var(--fw-light);
+  line-height: var(--lh-snug);
+}
+.bmw-h4 {       /* section heading */
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-snug);
+}
+.bmw-page-title {
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-regular);
+  letter-spacing: var(--ls-normal);
+}
+.bmw-tab {
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-regular);
+}
+.bmw-body {
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-normal);
+  color: var(--text-primary);
+}
+.bmw-body-2 {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-normal);
+  color: var(--text-secondary);
+}
+.bmw-label {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-regular);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.bmw-status-label {
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-regular);
+  letter-spacing: var(--ls-wider);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.bmw-climate-temp {
+  font-size: var(--fs-3xl);
+  font-weight: var(--fw-light);
+  line-height: 1;
+}
+.bmw-mono-num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ============================================================
+   Card recipe (the workhorse — used everywhere)
+   ============================================================ */
+.bmw-card {
+  background: var(--card-gradient);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card), var(--inner-card);
+  padding: var(--space-4);
+  position: relative;
+  overflow: hidden;
+}
+.bmw-card::after {
+  /* subtle grain for "glass" feel — fakes the noise pattern */
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(1200px 200px at 50% -50%, rgba(255,255,255,0.06), transparent 60%),
+    repeating-linear-gradient(
+      0deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 3px
+    );
+  pointer-events: none;
+}
+.bmw-card--strong { background: var(--card-gradient-strong); }
+.bmw-card--accent {
+  background: var(--bmw-blue-500);
+  box-shadow: var(--shadow-card), var(--glow-primary);
+}
+.bmw-card--accent::after { background: none; }

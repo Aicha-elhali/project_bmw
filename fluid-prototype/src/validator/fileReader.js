@@ -10,7 +10,7 @@ export async function readOutputFiles(outputDir) {
     for (const entry of entries) {
       const full = join(dir, entry.name);
       if (entry.isDirectory()) {
-        if (entry.name === 'node_modules') continue;
+        if (entry.name === 'node_modules' || entry.name === 'src') continue;
         await walk(full);
       } else if (/\.(jsx?|tsx?)$/.test(entry.name)) {
         const rel = 'src/' + relative(srcDir, full);

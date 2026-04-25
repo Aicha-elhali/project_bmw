@@ -26,10 +26,11 @@ import { fileURLToPath }    from 'url';
 import { transformFrame }                    from '../fluid-prototype/src/transformer/index.js';
 import { applyDesignTokens, loadTokens }     from '../fluid-prototype/src/design/tokenEngine.js';
 import { resolveAPIs }                       from '../fluid-prototype/src/generator/apiRegistry.js';
-import { buildGenerationPrompt }             from '../fluid-prototype/src/generator/promptBuilder.js';
+import { buildGenerationPrompt, buildMultiFramePrompt } from '../fluid-prototype/src/generator/promptBuilder.js';
 import { generateComponents }                from '../fluid-prototype/src/generator/claudeClient.js';
 import { writeOutput }                       from '../fluid-prototype/src/output/builder.js';
 import { runValidationLoop }                 from '../fluid-prototype/src/validator/index.js';
+import { classifyFrame, describePlacement, describeDefaultBackground } from '../fluid-prototype/src/classifier/frameClassifier.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -142,6 +143,14 @@ app.post('/api/generate', async (req, res) => {
     send(res, { status: 'progress', phase: 'transform', message: 'Transforming frame...' });
     const componentTree = transformFrame(frameData);
 
+    // Phase 2.1: Classify frame
+    send(res, { status: 'progress', phase: 'classify', message: 'Classifying frame context...' });
+    const classification = classifyFrame(frameData, componentTree);
+    send(res, {
+      status: 'progress', phase: 'classify',
+      message: `Frame "${classification.frameName}" → ${classification.frameType} (${classification.screenContext})`,
+    });
+
     // Phase 2.5: APIs
     send(res, { status: 'progress', phase: 'apis', message: 'Detecting required APIs...' });
     const apiConfig = resolveAPIs(componentTree);
@@ -156,7 +165,19 @@ app.post('/api/generate', async (req, res) => {
     // Phase 4: Claude generation
     send(res, { status: 'progress', phase: 'generate', message: 'Generating code with Claude...' });
     const tokens = await loadTokens(TOKENS_PATH);
-    const prompt = buildGenerationPrompt(styledTree, tokens, apiConfig);
+    let prompt;
+
+    if (classification.isPartial) {
+      prompt = buildMultiFramePrompt(
+        [{ tree: styledTree, classification }],
+        tokens,
+        apiConfig,
+        { describePlacement, describeDefaultBackground },
+      );
+      send(res, { status: 'progress', phase: 'generate', message: `Partial frame — building full HMI context (${classification.screenContext})` });
+    } else {
+      prompt = buildGenerationPrompt(styledTree, tokens, apiConfig);
+    }
     const generatedFiles = await generateComponents(prompt, anthropicKey);
 
     // Phase 5: Write output

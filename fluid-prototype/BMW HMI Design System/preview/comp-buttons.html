@@ -1,0 +1,73 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="_shared.css">
+<style>
+  /* Slanted right edge — parallelogram look that matches BMW climate-bar buttons */
+  .bmw-btn{
+    background:#1C69D4;color:#fff;border:0;cursor:pointer;
+    font:400 17px/1 'BMW Type Next',Inter,sans-serif;
+    padding:14px 26px;
+    clip-path:polygon(12px 0, 100% 0, 100% 100%, 0 100%);
+  }
+  .bmw-btn--secondary{ background:#243757; }
+  .bmw-btn--ghost{ background:rgba(255,255,255,0.06); }
+  .bmw-btn--hover{ background:#2D7AE8; }
+  .bmw-btn--pressed{ background:#1656B0; }
+  .bmw-btn--disabled{ background:#2A3548;color:#5C6B82;cursor:not-allowed; }
+
+  .bmw-btn--rect{
+    background:#1C69D4;color:#fff;border:0;cursor:pointer;
+    font:400 17px/1 'BMW Type Next',Inter,sans-serif;
+    padding:14px 22px;border-radius:4px;
+  }
+
+  /* Icon = pure glyph, no background, no border */
+  .bmw-iconbtn{
+    background:transparent;border:0;cursor:pointer;
+    width:48px;height:48px;display:inline-flex;align-items:center;justify-content:center;
+    color:#fff;
+  }
+  .bmw-iconbtn:hover{ color:#2D7AE8; }
+
+  .group{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .swatch-label{font-size:11px;color:#8C9BB0;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+  .row-block{display:flex;flex-direction:column;gap:6px}
+</style>
+</head>
+<body class="preview-card">
+<div class="col" style="gap:18px">
+  <div class="label">Buttons</div>
+
+  <div class="row-block">
+    <div class="swatch-label">Slanted (hex motif) — left-leaning, 12px top-left skew</div>
+    <div class="group">
+      <button class="bmw-btn">Start route</button>
+      <button class="bmw-btn bmw-btn--hover">Hover</button>
+      <button class="bmw-btn bmw-btn--pressed">Pressed</button>
+      <button class="bmw-btn bmw-btn--secondary">SYNC</button>
+      <button class="bmw-btn bmw-btn--ghost">MAX A/C</button>
+      <button class="bmw-btn bmw-btn--disabled">Disabled</button>
+    </div>
+  </div>
+
+  <div class="row-block">
+    <div class="swatch-label">Standard rectangular — radius 4px</div>
+    <div class="group">
+      <button class="bmw-btn--rect">Confirm</button>
+      <button class="bmw-btn--rect" style="background:#243757">Cancel</button>
+      <button class="bmw-btn--rect" style="background:transparent;outline:1px solid rgba(255,255,255,.16);outline-offset:-1px">Ghost</button>
+    </div>
+  </div>
+
+  <div class="row-block">
+    <div class="swatch-label">Icon — no background, no border, glyph-only</div>
+    <div class="group">
+      <button class="bmw-iconbtn"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1v-9z" stroke-linejoin="round"/></svg></button>
+      <button class="bmw-iconbtn"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button>
+      <button class="bmw-iconbtn"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></button>
+      <button class="bmw-iconbtn"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 4 20 12 6 20 6 4"/></svg></button>
+      <button class="bmw-iconbtn"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></svg></button>
+      <button class="bmw-iconbtn"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+    </div>
+  </div>
+
+</div>
+</body></html>

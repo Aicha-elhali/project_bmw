@@ -1,8 +1,9 @@
 /**
- * Phase 4a — Prompt Builder (BMW iDrive Navigation)
+ * Phase 4a — Prompt Builder (BMW HMI Design System)
  *
  * Builds the structured prompt for Claude to generate React components
- * for a BMW center console navigation screen from a Figma wireframe.
+ * for a BMW center console screen from a Figma wireframe.
+ * Uses the BMW HMI Design System (Operating System X / Panoramic Vision style).
  * Dynamically injects API/library instructions based on detected component types.
  */
 
@@ -31,6 +32,18 @@ function collectTypes(node, types = new Set()) {
   return types;
 }
 
+function hasTypeInTree(node, targetTypes) {
+  if (targetTypes.includes(node.type)) return true;
+  for (const child of node.children ?? []) {
+    if (hasTypeInTree(child, targetTypes)) return true;
+  }
+  const label = (node.label || '').toLowerCase();
+  for (const t of targetTypes) {
+    if (label.includes(t)) return true;
+  }
+  return false;
+}
+
 function trimTree(node, maxDepth = 6, depth = 0) {
   const trimmed = { ...node, children: [] };
   if (depth < maxDepth && node.children?.length) {
@@ -46,50 +59,37 @@ function trimTree(node, maxDepth = 6, depth = 0) {
 // ---------------------------------------------------------------------------
 
 const EXAMPLE_COMPONENT = `
-// FILE: DockItem.jsx
-import React, { useState } from 'react';
+// FILE: NotificationCard.jsx
+// Figma: card "notification"
+import React from 'react';
+import BMWIcon from '../hmi/BMWIcons.jsx';
 
-const DockItem = ({ icon, label, active, onClick, style: overrideStyle }) => {
-  const [hovered, setHovered] = useState(false);
-
-  const style = {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem',
-    color: active ? '#1C69D4' : (hovered ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.5)'),
-    cursor: 'pointer',
-    padding: '0.5rem',
-    minWidth: '3.75rem',
-    minHeight: '3.75rem',
-    borderRadius: '0.75rem',
-    backgroundColor: hovered ? 'rgba(255,255,255,0.06)' : 'transparent',
-    fontSize: '0.75rem',
-    fontWeight: '500',
-    fontFamily: '"bmwTypeNextWeb", "Arial", "Helvetica", sans-serif',
-    transition: 'color 0.15s ease-out, background-color 0.15s ease-out',
-    border: 'none',
-    boxSizing: 'border-box',
-    ...overrideStyle,
-  };
-
-  const iconStyle = { fontSize: '1.5rem', lineHeight: '1' };
-
+const NotificationCard = ({ icon = "wrench", title, subtitle, time, style: overrideStyle }) => {
   return (
-    <button
-      style={style}
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      <span style={iconStyle}>{icon}</span>
-      {label && <span>{label}</span>}
-    </button>
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 16,
+      background: 'linear-gradient(180deg, #243757 0%, #1B2A45 100%)',
+      borderRadius: 12, padding: '16px 20px',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
+      ...overrideStyle,
+    }}>
+      <div style={{
+        width: 44, height: 44, borderRadius: 12,
+        background: 'rgba(255,255,255,0.06)',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <BMWIcon name={icon} size={26} color="#F0C040"/>
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 20, color: '#fff' }}>{title}</div>
+        {subtitle && <div style={{ fontSize: 16, color: '#A8B5C8', marginTop: 2 }}>{subtitle}</div>}
+      </div>
+      {time && <span style={{ fontSize: 14, color: '#5C6B82' }}>{time}</span>}
+    </div>
   );
 };
 
-export default DockItem;
+export default NotificationCard;
 `.trim();
 
 // ---------------------------------------------------------------------------
@@ -109,20 +109,26 @@ export function buildGenerationPrompt(componentTree, tokens, apiConfig = {}) {
   const usedTypes      = [...collectTypes(componentTree)];
 
   const hasAPIs    = apiConfig.hasAPIs;
-  const hasMap     = apiConfig.promptSections?.some(s => s.includes('Leaflet'));
+  const hasMap     = apiConfig.promptSections?.some(s => s.includes('MapLibre'));
   const pkgNames   = Object.keys(apiConfig.packages || {});
 
-  // ── Conditional rules ───────────────────────────────────────────────────
+  // -- Detect missing header/footer in wireframe ----------------------------
+  const headerTypes = ['statusBar', 'header', 'navbar'];
+  const footerTypes = ['dock', 'footer', 'climateControl'];
+  const hasHeader = hasTypeInTree(componentTree, headerTypes);
+  const hasFooter = hasTypeInTree(componentTree, footerTypes);
+
+  // -- Conditional rules ---------------------------------------------------
 
   const rule8 = hasAPIs
     ? `8. **External libraries**: Use ONLY React and these packages (already in package.json): ${pkgNames.join(', ') || 'none — only browser fetch()'}. For API calls use the browser's built-in \`fetch()\`. No additional npm packages.`
     : `8. **No external libraries**: Only React. No framer-motion, no MUI, no map libraries.`;
 
   const rule9 = hasMap
-    ? `9. **Map rendering**: Use react-leaflet with CartoDB dark tiles (see API section). The map must be interactive (pan, zoom). Float BMW-styled controls on top using position absolute within the map's relative container. DO NOT use Leaflet's default marker icons — use L.divIcon.`
-    : `9. **Map placeholder**: Render map areas as dark containers (#0A0A0A) with CSS gradients to suggest roads. Do NOT embed actual maps.`;
+    ? `9. **Map rendering**: Use react-map-gl/maplibre with MapTiler Dark vector tiles (see API section). The map must be interactive (pan, zoom, tilt). Float BMW-styled controls on top using position absolute within the map's relative container. Use custom Marker components, not default maplibre markers.`
+    : `9. **Map placeholder**: Render map areas as dark containers (#0F1A2C) with subtle gradients to suggest roads. Do NOT embed actual maps.`;
 
-  // ── API & service layer section ─────────────────────────────────────────
+  // -- API & service layer section -----------------------------------------
 
   const apiSection = hasAPIs ? `
 ## Available APIs & Services
@@ -146,174 +152,220 @@ Use the exact \`// FILE:\` paths shown in the API sections above.
 All hooks must clean up (clear intervals, abort fetches) in their useEffect return.
 ` : '';
 
-  // ── Build prompt ────────────────────────────────────────────────────────
+  // -- Build prompt --------------------------------------------------------
 
   return `
-You are a senior React engineer building a BMW iDrive center console navigation interface. Generate a complete, working React application from a Figma wireframe that displays as a realistic, ${hasAPIs ? 'fully functional' : 'static'} BMW navigation screen in the browser.
+You are a senior React engineer building a BMW in-car HMI interface. Generate a complete, working React application from a Figma wireframe that faithfully implements the wireframe as a ${hasAPIs ? 'fully functional' : 'static'} BMW infotainment screen. Implement ONLY the elements present in the wireframe — do not add, invent, or hallucinate any UI elements that are not in the component tree.
 
-## BMW AUTOMOTIVE UI/UX DESIGN CONSTRAINTS — VERBINDLICH
+## BMW HMI DESIGN SYSTEM — VERBINDLICH
 
-Du bist ein Automotive UI/UX Designer mit Expertise im Premium-Fahrzeugsegment.
-Designprinzip: Ein gutes Interface ist nicht nur attraktiv — es ist intuitiv.
-Funktion und Sicherheit haben immer Vorrang vor Ästhetik.
-Design ist die digitale Visitenkarte der Marke BMW: präzise, technisch überlegen, kontrolliert.
+Du verwendest das BMW HMI Design System (Operating System X / Panoramic Vision style).
+Jedes generierte UI muss aussehen wie ein echtes BMW Infotainment Display.
+Die folgenden Regeln sind VERBINDLICH — keine Abweichungen.
 
-### I. SICHERHEIT & FAHRERKONTEXT — ABSOLUTE PRIORITÄT
+### I. VISUELLE GRUNDLAGEN
 
-Jede Designentscheidung muss unter der Frage bewertet werden:
-"Kann ein Fahrer bei 130 km/h auf der Autobahn diese Information in unter 1,5 Sekunden erfassen?"
+**Hintergründe — NIEMALS reines Schwarz oder Weiß.**
+- Surface Canvas: \`#0A1428\` (dunkles Blauschwarz) — der Standard-Hintergrund
+- Surface Canvas Alt: \`#0E1B30\`
+- Cards/Elevated: \`#1B2A45\` (Standard-Karte)
+- Elevated Alt: \`#243757\` (Karten-Gradient oben)
+- Elevated Strong: \`#2A4170\` (aktive Karte)
+- Elevated Accent: \`#34538D\` (selektierte Karte)
+
+**Farbstimmung:** Kühl, mondbeleuchtetes, monochromatisches Blauschwarz. Die einzige "warme" Ausnahme ist ein Now-Playing Media-Card (optional orange/rot Gradient).
+
+**Karten-Rezept (das Arbeitstier — überall verwendet):**
+\`\`\`
+background: linear-gradient(180deg, #243757 0%, #1B2A45 100%);
+border-radius: 12px;
+box-shadow: 0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+\`\`\`
+Dazu ein Pseudo-Element \`::after\` als Grain-Overlay für "Glass-Feel":
+\`\`\`
+background: radial-gradient(1200px 200px at 50% -50%, rgba(255,255,255,0.06), transparent 60%),
+  repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 3px);
+pointer-events: none; position: absolute; inset: 0;
+\`\`\`
+Akzent-Karten (CTAs): solid \`#1C69D4\` mit \`0 0 24px rgba(28,105,212,0.6)\` Glow.
+
+**Layering, nicht Full-bleed:** Neue Inhalte erscheinen als Karten die ÜBER der Map/Canvas schweben — niemals als Full-Screen-Ersatz. Modals dimmen den Hintergrund nicht; die Map bleibt dahinter lesbar.
+
+### II. FARBEN
+
+**BMW Blue Scale (primary / interactive):**
+- 50: #E8F1FB | 100: #C5DBF5 | 200: #8DBAEC | 300: #5599E2
+- 400: #2D7AE8 (hover) | **500: #1C69D4 (base)** | 600: #1656B0 (pressed)
+- 700: #10428A | 800: #0B2F63 | 900: #071D3D
+
+**Neutrals:** #FFFFFF, #F2F4F8, #D8DEE8, #A8B5C8, #8C9BB0, #5C6B82, #3D4A60, #2A3548, #1B2638, #121B2A, #0A1428, #050B17
+
+**Text:**
+- Primary: #FFFFFF | Secondary: #A8B5C8 | Tertiary: #5C6B82 | Disabled: #3D4A60
+- Accent: #5BA3FF | Warning: #F0C040 | Danger: #E63946 | Success: #3CD278
+
+**Interactive:**
+- Default: #1C69D4 | Hover: #2D7AE8 | Pressed: #1656B0 | Disabled: #2A3548
+
+**Borders:** rgba(255,255,255,0.08) default, rgba(255,255,255,0.16) strong, #2D7AE8 focus
+
+**Status:** Warning #F0C040 | Danger #E63946 | Success #3CD278 | Info #5BA3FF
+
+**Map (Nacht):** Background #0F1A2C | Water #1A3A5F | Roads #3A4A66 / #FFFFFF | Highway #5BA3FF | Park #1F3540 | Route #5BA3FF | User Arrow #1C69D4
+
+### III. TYPOGRAFIE
+
+**Font:** \`"BMW Type Next", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif\`
+WICHTIG: Die generierte App lädt Inter von Google Fonts als Fallback. Verwende diese Font-Stack-Declaration exakt.
+
+**Type Scale (px, für ~12-Zoll HMI Screen):**
+- Display (Speed, Range): 64px, weight 100 (Thin), line-height 1.1, tracking -0.01em
+- H1 (Screen Titles): 48px, weight 300 (Light), line-height 1.1
+- H2: 36px, weight 300, line-height 1.25
+- H3 (Card Heading): 32px, weight 300, line-height 1.25
+- H4 (Section Heading): 24px, weight 500 (Medium), line-height 1.25
+- Page Title: 24px, weight 400, line-height 1.25
+- Tab: 22px, weight 400, line-height 1.4
+- Body: 22px, weight 400, line-height 1.4
+- Body Secondary: 18px, weight 400, line-height 1.4
+- Body Small: 16px, weight 400, line-height 1.4
+- Label (UPPERCASE): 14px, weight 400, tracking 0.02em, uppercase
+- Status Label (UPPERCASE): 12px, weight 400, tracking 0.06em, uppercase
+- Climate Temp: 28px, weight 300, line-height 1
+
+**Weights:** Thin 100 (nur Display-Zahlen) | Light 300 (Headings) | Regular 400 (Body, Labels) | Medium 500 (Section Headings, Buttons) | Bold 700 (nur Speed Limit)
+
+**ALL CAPS Labels:** Immer +6% letter-spacing (\`0.06em\`).
+**Tabular Numbers:** Für alle Zahlen \`font-variant-numeric: tabular-nums\`.
+
+### IV. SPACING & TOUCH TARGETS
+
+**4px Basis-Grid:** 0 | 2 | 4 | 8 | 12 | 16 | 20 | 24 | 32 | 40 | 48 | 64 | 80 | 96
+
+**Touch Targets:** Mindestens **64×64px** (Handschuh-tauglich). Kleinstes erlaubtes Target: 48×48px.
+
+**Layout-Zonen (fest):**
+1. **Header** oben, 48px hoch, transparent/blur, Status-Icons rechts
+2. **Footer** immer sichtbar, 96px hoch: Fahrer-Klima · 7 Quick-Actions · Beifahrer-Klima
+3. **Left Slot** ~80px: Fahrzeug-Status-Icons
+4. **Right Slot** in der abgeschrägten Ecke — Park-Assist etc.
+5. **Center** hält Map / Liste / Formular
+
+**Bildschirm:** 1920×720px, chamfered bottom-right corner (~15-20° Diagonale).
+
+**Card Padding:** 16px oder 24px. Section Gaps: 32-48px.
+
+### V. BORDER-RADIUS
+
+- Buttons: 8px | Cards: 12-16px | Search Bar: 24px
+- Toggles/Avatars/Pills: 999px (full) | Key: 8px | Modal: 16px
+- NIEMALS border-radius > 16px auf primären Containern (außer Pills/Toggles)
+
+### VI. SCHATTEN & ELEVATION
+
+- Card: \`0 2px 8px rgba(0,0,0,0.40)\` + \`inset 0 1px 0 rgba(255,255,255,0.06)\`
+- Elevated: \`0 4px 16px rgba(0,0,0,0.50)\`
+- Modal: \`0 8px 32px rgba(0,0,0,0.60)\`
+- Primary Glow: \`0 0 24px rgba(28,105,212,0.60)\` (für aktive BMW Blue Elemente)
+- Warning Glow: \`0 0 16px rgba(240,192,64,0.40)\`
+- Danger Glow: \`0 0 16px rgba(230,57,70,0.50)\`
+
+### VII. ANIMATION & MOTION
+
+- Standard Easing: \`cubic-bezier(0.4, 0, 0.2, 1)\` (99% der Zeit)
+- Decelerate (Einblenden): \`cubic-bezier(0, 0, 0.2, 1)\`
+- Fast: 150ms | Base: 250ms | Slow: 400ms
+- Tab-Underline: ~250ms | Cards scale-and-fade: ~200ms | Toggles: ~150ms
+- VERBOTEN: Bounces, Springs, Parallax. Keine Animationen > 300ms für Feedback.
+
+### VIII. TRANSPARENZ & BLUR
+
+- Header/Tab-Strips auf Map: \`backdrop-filter: blur(8px)\` über \`rgba(10,20,40,0.55)\`
+- Cards auf solidem Canvas sind OPAQUE — Blur nur im Map-Kontext.
+
+### IX. BORDERS & DIVIDERS
+
+- Fast nie verwendet. Surfaces trennen sich durch Gradient + Shadow.
+- Wo nötig (Listen, Tab-Strip): \`rgba(255,255,255,0.08)\` — kaum sichtbar.
+
+### X. HOVER / PRESS
+
+- Hover: BMW Blue 400 (\`#2D7AE8\`) oder surface aufhellen
+- Press: BMW Blue 600 (\`#1656B0\`) oder surface abdunkeln
+- Active: Primary Glow Shadow. Keine Scale-Transforms.
+
+### XI. ICONOGRAPHY
+
+**Style:** Outline / Line-Art, 1.75-2px Stroke, rounded caps + joins, keine Fills.
+**Größe:** 24×24px viewBox. In interaktiven Bereichen mindestens 24px.
+**Farbe:** Default #FFFFFF | Active #1C69D4 (BMW Blue) + optional Glow | Warning #F0C040 | Danger #E63946 | Success #3CD278
+
+KEINE EMOJI, niemals. Keine Icon-Fonts. Verwende geometrische Unicode-Symbole (▲▶●◎★✕☰♪☏△▽✳), CSS-Shapes (div+border+border-radius), oder inline SVG-Paths.
+
+### XII. CONTENT & VOICE
+
+**Stimme:** Knapp, technisch, deutsche Ingenieurskunst. Imperativ oder deklarativ — nie konversationell.
+- "Drive carefully." (deklarativ) | "Start route guidance" (Verb-first CTA)
+- "A/C OFF" (Caps, Status-Fakt) | "22 kW", "23 °C", "2:55 pm" (Zahlen immer tabular)
+- Echte Adressen, nie Lorem Ipsum: "Schloßstraße 14, 80803 München"
+
+**Casing:** Sentence case für Sätze/CTAs. ALL CAPS + 6% letter-spacing für Status-Labels. Title-case für Tabs.
+**Kein "Ich" oder "Du"** — das System *verkündet* Zustände.
+**Keine Emoji.** Unicode-Sonderzeichen (°, ·, →, ✕) sind erlaubt.
+
+### XIII. SICHERHEIT & FAHRERKONTEXT — ABSOLUTE PRIORITÄT
+
+"Kann ein Fahrer bei 130 km/h diese Information in unter 1,5 Sekunden erfassen?"
 
 VERBOTEN:
-- Mehr als 7 primäre Aktionen auf einem Screen gleichzeitig
-- Informationstiefe tiefer als 3 Menüebenen während der Fahrt
-- Modale Overlays, die mehr als 40% des Screens bedecken
-- Animationen länger als 300ms für Systemfeedback
-- Parallax-Scrolleffekte oder gleichzeitige Bewegungen auf mehr als 2 Elementen
-- Autoplay-Videos oder bewegte Hintergründe
+- Mehr als 7 primäre Aktionen auf einem Screen
+- Informationstiefe > 3 Menüebenen
+- Modale Overlays > 40% des Screens
+- Animationen > 300ms für Systemfeedback
+- Parallax, Autoplay-Videos, bewegte Hintergründe
 
 PFLICHT:
-- Touch-Targets mindestens 44×44px (Handschuhe, Fahrsituationen)
-- Jede primäre Aktion muss mit einem Blick erfassbar sein (Glanceability)
-- Kritische Warnings immer im direkten Sichtfeld, nie peripher versteckt
+- Touch-Targets mindestens 64×64px (Handschuhe)
+- Glanceability: jede primäre Aktion mit einem Blick erfassbar
+- Kritische Warnings im direkten Sichtfeld
 
-### II. BRAND-IDENTITÄT — BMW DNA
+### XIV. BRAND-IDENTITÄT — BMW DNA
 
-Designe nicht "einen Touchscreen" — designe BMWs Touchscreen.
-Jedes Element muss fragen: "Fühlt sich das BMW an?"
-
-BMW DESIGNSPRACHE:
-- Präzision: Saubere Linien, keine überflüssigen Elemente
-- Technische Überlegenheit: Professionell, nicht verspielt
-- Emotionale Qualität: Premium-Feeling durch Details, nicht durch Dekoration
-- Kontrolliertheit: Der Fahrer ist immer Herr der Situation
+BMW UI = präzise, kühl, technisch überlegen, kontrolliert — Cockpit eines Hochleistungsgeräts.
 
 VERBOTEN:
-- Consumer-App-Feeling (Bottom-Navigation-Bars wie Instagram/TikTok)
-- Tesla-Look: horizontale Mega-Screens ohne Struktur oder Hierarchie
-- Warme Goldtöne als Akzent (→ Rolls-Royce/Mercedes-Territorium)
-- Sportliches Rot als primäre Akzentfarbe (→ Ferrari/Audi Sport)
-- Verspielter Stil, Gamification-Elemente, Blob-Schatten, Illustrationen
-
-### III. TYPOGRAFIE — VERBOTEN
-
-- Inter, Roboto, Arial als primäre Schrift, Helvetica als primäre Schrift, System-UI, Comic Sans
-- Mehr als 3 Schriftschnitte gleichzeitig auf einem Screen
-- ALL CAPS Texte länger als 4 Wörter
-- Fließtext unter 14px (Vibration, Fahrsituation)
-- Letter-Spacing unter -0.02em bei Überschriften
-
-### IV. FARBE & KONTRAST — VERBOTEN
-
-- Reines Weiß (#FFFFFF) als Hintergrund — zu hart, kein Tiefengefühl
-- Reines Schwarz (#000000) als Hintergrund — stattdessen kühle/warme Dunkelwerte wie #0D0D0D
-- Lila, pink oder grüne Gradienten — Consumer-App-Look
-- Bunte Drop-Shadows (Color Shadows wie im iOS-Trend)
-- Mehr als 2 Akzentfarben gleichzeitig auf einem Screen
-- Pastell als primäre Systemfarben — wirkt infantil
-- Dark Mode ohne Oberflächendifferenzierung: alle Ebenen müssen unterscheidbar bleiben (#0D0D0D, #1A1A1A, #262626)
-- Niedriger Kontrast unter WCAG AA — besonders sicherheitskritisch
-
-### V. LAYOUT & KOMPOSITION — VERBOTEN
-
-- Zentriertes 3-Karten-Grid-Layout — generischstes UI-Pattern überhaupt
-- Gleichmäßig verteilte Elemente ohne visuelle Hierarchie
-- Hamburger-Menü als primäre Navigation (ungeeignet für Fahrsituation)
-- Horizontales Scrollen außer in expliziten, gekennzeichneten Carousels
-- Informationsarchitektur tiefer als 3 Ebenen
-- Asymmetrische Layouts, die den Fahrerblick von der Straße wegziehen
-
-### VI. ANIMATION & MOTION — VERBOTEN
-
-- Animationen über 300ms für Systemfeedback (zu langsam beim Fahren)
-- "Bouncy" Easing / Spring Physics für primäre UI-Elemente — wirkt verspielt
-- Parallax-Scroll-Effekte (Schwindel, Ablenkung)
-- Autoplay-Videos oder GIFs als Hintergründe
-- Simultane Animationen auf mehr als 2 Elementen
-- Ladeanimationen ohne Progress-Indikator
-
-PFLICHT:
-- Easing: ease-out für Einblenden, ease-in-out für Übergänge
-- Systemfeedback: maximal 150–200ms
-- State-Transitions müssen den Kontext bewahren (Nutzer verliert nie Orientierung)
-
-### VII. KOMPONENTEN & PATTERNS — VERBOTEN
-
-- Standard shadcn/ui, Material Design oder Bootstrap ohne vollständiges Restyling
-- Glassmorphism als primäres Designsystem (backdrop-filter: blur)
-- Neumorphism — schlechter Kontrast, schlecht lesbar im Fahrzeug
-- Standard-iOS/Android-Komponenten — BMW hat eigene HMI-Sprache
-- Emoji als UI-Icons
-- Gemischte Icon-Stile (Outline + Filled auf demselben Screen)
-- Icons unter 24px in touch-interaktiven Bereichen
-
-PFLICHT:
-- Konsistentes Icon-Gewicht und -Geometrie
-- Alle interaktiven Elemente visuell eindeutig als solche erkennbar
-- Definierte States: default, hover, active, disabled, error, focus
-
-### VIII. BMW-SPEZIFISCHE REGELN
-
-- border-radius für primäre Container: maximal 12px (nicht rund/verspielt)
-- Akzentfarben: kühles Blau (BMW i-Linie #1C69D4), gedämpftes Teal, technisches Weiß
-- Geometrische, klare Typografie — keine generischen Web-Fonts
-- Mindestens 3 unterscheidbare Oberflächenebenen (background, surface, elevated)
-
-BMW UI muss sich anfühlen wie: präzise, kühl, technisch überlegen, kontrolliert — Cockpit eines Hochleistungsgeräts, nicht Consumer-App.
+- Consumer-App-Feeling (Bottom-Nav à la Instagram/TikTok, Hamburger-Menü)
+- Tesla-Look (unstrukturierte Mega-Screens)
+- Warme Goldtöne (Rolls-Royce/Mercedes), Sportliches Rot (Ferrari/Audi Sport)
+- Gamification, Blob-Schatten, Illustrationen
+- Glassmorphism als primäres System, Neumorphism
+- Standard unrestyled UI-Libraries (shadcn, MUI, Bootstrap)
+- Pastel als System-Farben
+- Emoji als Icons, gemischte Icon-Stile
 
 ### SELF-CHECK VOR DER CODE-GENERIERUNG
 
 Beantworte intern vor jeder Ausgabe:
-1. Kann ein Fahrer bei 130 km/h dies in 1,5 Sek. erfassen?
-2. Fühlt sich dies BMW an — oder wie eine Consumer-App?
-3. Ist die Informationshierarchie sofort klar ohne Suchen?
-4. Sind alle Touch-Targets ≥ 44px?
-5. Ist der Kontrast WCAG AA-konform?
-6. Gibt es mehr als 7 primäre Aktionen? Wenn ja: reduzieren.
-7. Würde dieser Screen einen Fahrer ablenken?
-Wenn eine Frage mit NEIN beantwortet wird: überarbeiten, nicht ausgeben.
+1. Hintergrund #0A1428 (nicht #000000 oder #0D0D0D)?
+2. Cards mit Gradient #243757→#1B2A45 (nicht flat)?
+3. Touch-Targets ≥ 64px?
+4. Font "BMW Type Next" / "Inter" (nicht Arial/Helvetica/bmwTypeNextWeb)?
+5. BMW Blue #1C69D4 für interaktive States?
+6. Kontrast WCAG AA?
+7. ≤ 7 primäre Aktionen?
+8. Header (48px) + Footer (96px) Layout-Zonen vorhanden?
 
 ## Context
 
-This is a **car center console display** (BMW iDrive), not a website. The output must look like an embedded automotive infotainment screen.
+This is a **car center console display** (BMW HMI), not a website. The output must look like an embedded automotive infotainment screen in Operating System X / Panoramic Vision style.
 
 Screen specification:
 - **Resolution**: 1920×720 pixels (widescreen, ~2.67:1 aspect ratio)
-- **Display**: Dark theme, optimized for automotive use
-- **Interaction**: Touch-only (generous touch targets of 48–60px)
+- **Display**: Dark theme with blue-tinted surfaces, chamfered bottom-right corner
+- **Interaction**: Touch-only (generous touch targets of 64px+)
 
 Component types in this wireframe: ${usedTypes.join(', ')}
 ${hasAPIs ? `Dynamic services: ${apiConfig.detectedServices.join(', ')}` : ''}
-
-## BMW iDrive Design System
-
-### Colors
-- **Background**: #0D0D0D (near-black, OLED-friendly)
-- **Elevated surfaces**: #1A1A1A (cards, overlays, panels)
-- **Overlay surfaces**: #262626 (dialogs, search bars)
-- **Interactive surfaces**: #2A2A2A (hover: #333333, active: #3D3D3D)
-- **BMW Blue**: #1C69D4 (active/selected), #0653B6 (pressed), #3D8BF2 (accent)
-- **Text**: #FFFFFF (primary), rgba(255,255,255,0.7) (secondary), rgba(255,255,255,0.5) (muted), rgba(255,255,255,0.3) (disabled)
-- **Borders**: rgba(255,255,255,0.1) (subtle), rgba(255,255,255,0.15) (visible)
-- **Dividers**: rgba(255,255,255,0.06)
-- **Route**: #4A90D9 (active route), #666666 (inactive)
-- **Traffic**: #4CAF50 (free), #FFC107 (moderate), #F44336 (heavy), #B71C1C (standstill)
-- **Map**: #0A0A0A (bg), #333333 (roads), #1A3A5C (water), #1A331A (parks)
-
-### Typography
-- **Font**: "bmwTypeNextWeb", "Arial", "Helvetica", sans-serif
-- **Weight 300** (light) — BMW signature, even headings
-- **400** (regular): inputs, captions  |  **500** (medium): buttons, labels, dock  |  **700** (bold): speed limit only
-- **Display**: 3rem  |  **H1**: 1.75rem  |  **H2**: 1.375rem  |  **Body**: 1rem  |  **Caption**: 0.75rem  |  **Label**: 0.6875rem / 500 / uppercase / 0.05em spacing
-
-### Spacing
-- **Touch targets**: 3.75rem preferred, 3rem minimum
-- **Border-radius**: 0.375rem (sm), 0.75rem (md), 1rem (lg), 1.5rem (xl), 50% (circle)
-- **Shadows**: 0.3–0.6 opacity (deeper than web, for dark-on-dark contrast)
-- **Status bar**: 2.5rem  |  **Dock**: 4.5rem  |  **Side panel**: 22rem
-
-### Icons (geometric Unicode only — KEINE EMOJI)
-Navigation: ▲ ● ◀ ▶ | Media: ▶ ‖ ▸▸ ◂◂ | Climate: ✳ △ ▽ | Vehicle: ↯ ■ | General: ✕ ☰ ← ★ | Dock: ◎ ♪ ☏ ▣ ⚙
-CRITICAL: NEVER use emoji characters (📍🎵📞🚗🔊⛽❄♨⚡ etc.) as UI icons. Emoji break BMW's precise, technical aesthetic. Use ONLY geometric Unicode symbols (▲▶●◎★✕☰♪☏), CSS-drawn shapes (circles, bars, lines via div+border), or inline SVG paths. If no suitable Unicode symbol exists, draw the icon with CSS (background + border + border-radius) or describe it as an SVG path.
 ${apiSection}${serviceLayerSection}
 ## Component Tree (from Figma, with pre-computed styles)
 
@@ -327,39 +379,220 @@ ${JSON.stringify(trimmedTree, null, 2)}
 ${JSON.stringify(tokens, null, 2)}
 \`\`\`
 
+## PRE-BUILT HMI CHROME (in src/hmi/ — NICHT neu generieren!)
+
+Die folgenden Komponenten sind FERTIG und werden automatisch in \`src/hmi/\` bereitgestellt.
+Du MUSST sie importieren und verwenden. Generiere KEINE eigenen Header, Footer, Display oder Icon-Komponenten.
+KEINE ABWEICHUNG — diese Komponenten definieren das exakte BMW HMI Layout.
+
+**Verfuegbare Imports (aus Komponenten-Dateien):**
+\`\`\`jsx
+import BMWIcon from '../hmi/BMWIcons.jsx';
+import { HMIDisplay, HMIHeader, HMIFooter, LeftSideSlot, RightSideSlot, MapBackground } from '../hmi/HMIChrome.jsx';
+\`\`\`
+
+**Aus App.jsx (eine Ebene hoeher):**
+\`\`\`jsx
+import BMWIcon from './hmi/BMWIcons.jsx';
+import { HMIDisplay, HMIHeader, HMIFooter, LeftSideSlot, RightSideSlot, MapBackground } from './hmi/HMIChrome.jsx';
+\`\`\`
+
+**HMIDisplay** — Parallelogramm-Container (1920x720), auto-skaliert auf Viewport, chamfered corners. ALLES kommt da rein.
+**HMIHeader** — Transparente floating Statusleiste: Links Wrench-Icon+Badge, Rechts Bell, Temp, Mute, BT, WiFi, Mic, Avatar-Ring, Uhr.
+  Props: \`{ title?, leftIcon?, warningCount?, outdoor? }\`
+**HMIFooter** — Klima links + 7 Quick-Action Icons (64x64, radius 16) + Klima rechts.
+  Props: \`{ active?, onTab? }\` — active: "media"|"nav"|"phone"|"home"|"fan"|"car"|"apps"
+**LeftSideSlot** — Fahrzeug-Icons (Tuer-Schematic, Kamera, Recording-Dot) am linken Rand, geneigt.
+**RightSideSlot** — Parallelogramm-Buttons im chamfered Bereich (Settings, Compass/N, Assist View, Park-Assist-Halo).
+  Props: \`{ onClose?, showPark? }\`
+**MapBackground** — SVG Nacht-Map-Placeholder (dunkle Strassen auf #0F1A2C).
+**BMWIcon** — Line-art SVG Icons, 1.75px stroke.
+  Props: \`{ name, size?, color?, style? }\`
+  Names: note, play, forward, phone, home, fan, car, apps, bell, mute, bluetooth, wifi, mic, wrench, user, triangleAlert, seatbelt, door, minus, plus, seat, park, pin, compass, search, chevronRight, chevronDown, close, bolt, charge, speaker, camera, record, music, settings, arrow, shield
+
 ## Your Task
 
-Generate a complete React application. Files to create:
+Generate ONLY die Content-Komponenten. Chrome (Display, Header, Footer, SideSlots) ist bereits vorhanden.
+
+Files to create:
 
 ${componentNames.map(n => `- ${n}.jsx`).join('\n')}
-- App.jsx (root — assembles the full screen layout${hasAPIs ? ', wraps in context providers' : ''})
-- main.jsx (entry point)
+- App.jsx (root — MUSS HMIDisplay/Header/Footer/SideSlots importieren und verwenden${hasAPIs ? ', wraps in context providers' : ''})
+
+## PFLICHT-STRUKTUR fuer App.jsx
+
+\`\`\`jsx
+// FILE: App.jsx
+import React from 'react';
+import { HMIDisplay, HMIHeader, HMIFooter, LeftSideSlot, RightSideSlot, MapBackground } from './hmi/HMIChrome.jsx';
+// import your content components...
+
+const App = () => {
+  return (
+    <HMIDisplay>
+      {/* Background: MapBackground fuer Map-Screens, oder solid gradient fuer andere */}
+      <MapBackground />
+      {/* Oder fuer Non-Map-Screens: */}
+      {/* <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,#0E1B30,#0A1428)" }}/> */}
+
+      {/* CONTENT — position absolute, mit Padding fuer Chrome-Zonen */}
+      <div style={{ position: "absolute", inset: 0, padding: "70px 280px 110px 240px", overflow: "hidden" }}>
+        {/* Deine Content-Komponenten hier */}
+      </div>
+
+      {/* CHROME — IMMER vorhanden, KEINE Aenderungen */}
+      <HMIHeader />
+      <LeftSideSlot />
+      <RightSideSlot showPark={false} />
+      <HMIFooter active="home" />
+    </HMIDisplay>
+  );
+};
+
+export default App;
+\`\`\`
+
+**WICHTIG:**
+- Content MUSS innerhalb \`padding: "70px 280px 110px 240px"\` platziert werden (Header oben, RightSlot+Chamfer rechts, Footer unten, LeftSlot+Lean links)
+- Content-Elemente die ueber der Map schweben: \`position: absolute\` innerhalb des Content-Containers
+- Cards schweben UEBER dem Hintergrund — niemals full-screen ersetzen
+- Fuer Map-Screens: \`<MapBackground />\` als erstes Kind von HMIDisplay
+- Fuer andere Screens: solid Gradient \`linear-gradient(180deg, #0E1B30, #0A1428)\`
+
+## REFERENZ — So sieht korrekter BMW HMI Content aus
+
+### Map Screen Content (Referenz-Pattern):
+\`\`\`jsx
+{/* Search bar — schwebend ueber der Map */}
+<div style={{
+  position: "absolute", top: 94, left: 200, width: 360,
+  background: "rgba(27,42,69,0.85)", backdropFilter: "blur(8px)",
+  borderRadius: 4, padding: "12px 18px",
+  display: "flex", alignItems: "center", gap: 12,
+}}>
+  <BMWIcon name="search" size={20} color="#A8B5C8"/>
+  <span style={{ fontSize: 18, color: "#8C9BB0" }}>Search</span>
+</div>
+
+{/* POI info card — unter der Searchbar */}
+<div style={{
+  position: "absolute", top: 164, left: 200, width: 360,
+  background: "linear-gradient(180deg,#243757,#1B2A45)",
+  borderRadius: 4, padding: 20,
+  boxShadow: "0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)",
+}}>
+  <div style={{ fontSize: 14, letterSpacing: "0.06em", textTransform: "uppercase", color: "#A8B5C8", marginBottom: 8 }}>A9 · Highway</div>
+  <div style={{ fontSize: 28, fontWeight: 300, color: "#fff", lineHeight: 1.15 }}>AC Mer Germany GmbH</div>
+  <div style={{ fontSize: 16, color: "#A8B5C8", marginTop: 6 }}>Schlossstrasse 14, 80803 Muenchen</div>
+  <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+    <span style={{ background: "rgba(60,210,120,0.16)", color: "#3CD278", padding: "6px 12px", borderRadius: 999, fontSize: 13, letterSpacing: "0.06em", textTransform: "uppercase" }}>Available</span>
+    <span style={{ background: "#1C69D4", color: "#fff", padding: "6px 12px", borderRadius: 999, fontSize: 13 }}>22 kW</span>
+  </div>
+  <button style={{
+    marginTop: 16, width: "100%", background: "#1C69D4", color: "#fff",
+    border: 0, borderRadius: 4, padding: "14px 18px", fontSize: 18, cursor: "pointer",
+    boxShadow: "0 0 20px rgba(28,105,212,0.5)",
+  }}>Start route guidance</button>
+</div>
+\`\`\`
+
+### Notification List (Referenz-Pattern):
+\`\`\`jsx
+{/* Label */}
+<div style={{ fontSize: 14, letterSpacing: "0.06em", textTransform: "uppercase", color: "#A8B5C8" }}>Notification overview</div>
+
+{/* Tab strip mit Active-Indicator */}
+<div style={{ display: "flex", gap: 32, marginTop: 8, marginBottom: 24, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+  <span style={{ color: "#5BA3FF", fontSize: 22, paddingBottom: 14, position: "relative" }}>
+    Notifications
+    <span style={{ position: "absolute", left: -2, right: -2, bottom: -2, height: 3, borderRadius: 2, background: "#1C69D4", boxShadow: "0 0 12px rgba(28,105,212,0.9)" }}/>
+  </span>
+  <span style={{ color: "#fff", fontSize: 22, opacity: 0.7, paddingBottom: 14 }}>Check Control</span>
+</div>
+
+{/* Notification card */}
+<div style={{
+  display: "flex", alignItems: "center", gap: 16,
+  background: "linear-gradient(180deg,#243757,#1B2A45)", borderRadius: 12,
+  padding: "16px 20px", boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+}}>
+  <div style={{ width: 44, height: 44, borderRadius: 12,
+    background: "rgba(255,255,255,0.06)",
+    display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+    <BMWIcon name="wrench" size={26} color="#F0C040"/>
+  </div>
+  <div style={{ flex: 1 }}>
+    <div style={{ fontSize: 20, color: "#fff" }}>High-voltage system fault</div>
+    <div style={{ fontSize: 16, color: "#A8B5C8", marginTop: 2 }}>Drive carefully. Visit a Service Partner.</div>
+  </div>
+  <span style={{ fontSize: 14, color: "#5C6B82" }}>2:48 pm</span>
+</div>
+\`\`\`
+
+### Media Screen Content (Referenz-Pattern):
+\`\`\`jsx
+{/* Label */}
+<div style={{ fontSize: 14, letterSpacing: "0.06em", textTransform: "uppercase", color: "#A8B5C8" }}>Media</div>
+
+{/* Grid: Now-Playing + Queue */}
+<div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 32, marginTop: 16 }}>
+  {/* Now Playing — die EINZIGE warme Karte im ganzen System */}
+  <div style={{
+    aspectRatio: "1 / 1", borderRadius: 16,
+    background: "linear-gradient(135deg,#E25A1C,#E63946 60%,#34538D)",
+    boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+    padding: 16, display: "flex", flexDirection: "column", justifyContent: "flex-end", color: "#fff",
+  }}>
+    <div style={{ fontSize: 18, opacity: 0.9 }}>Spotify · Now playing</div>
+    <div style={{ fontSize: 28, fontWeight: 300, marginTop: 6 }}>Highway State of Mind</div>
+    <div style={{ fontSize: 16, opacity: 0.85 }}>Auto Pilot · Long Drive Vol. 2</div>
+  </div>
+
+  {/* Queue rows */}
+  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={{
+      background: "linear-gradient(180deg,#243757,#1B2A45)",
+      borderRadius: 12, padding: 16, display: "flex", alignItems: "center", gap: 16,
+    }}>
+      <div style={{ width: 56, height: 56, borderRadius: 8, background: "#1C69D4" }}/>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 14, color: "#A8B5C8", letterSpacing: "0.06em", textTransform: "uppercase" }}>Recently played</div>
+        <div style={{ fontSize: 20, color: "#fff" }}>Sunday Drive</div>
+      </div>
+      <BMWIcon name="play" size={28} color="#fff"/>
+    </div>
+  </div>
+</div>
+\`\`\`
 
 ## Rules
 
 1. **File format**: Each file starts with \`// FILE: ComponentName.jsx\` then \`// Figma: [type] "[name]"\`
-2. **Inline styles only**: Use pre-computed \`style\` objects as base. No CSS files, no className, no CSS-in-JS.
-3. **Flexbox layout**: Screen is 100vw × 100vh. Use flexbox. Only use \`position: absolute\` for elements that truly float (quick actions, overlays on map).
+2. **Inline styles only**. No CSS files, no className. CSS vars (\`var(--bmw-blue-500)\`) from \`colors_and_type.css\` are fine.
+3. **Layout**: Content innerhalb von HMIDisplay (1920x720 canvas). Position absolute fuer schwebende Elemente. Content-Padding: \`70px 280px 110px 240px\`.
 4. **Props**: Each component accepts \`children\` and \`style\` (spread at end for overrides).
 5. **ES Modules**: \`import/export\`, no CommonJS.
 6. **Functional components**: Use hooks (useState, useEffect, useContext) for state and side effects.
-7. **Text content**: Use \`content\` from the tree, or realistic German BMW text ("Zum Ziel navigieren", "Route berechnen", Munich street names).
+7. **Text content**: Use \`content\` from the tree. If a text node has no content, use plausible German placeholder text for that specific node. NEVER add text nodes that don't exist in the tree.
 ${rule8}
 ${rule9}
-10. **Touch targets**: All interactive elements ≥ 3rem (48px).
-11. **Fill screen**: 100vw × 100vh, use flex-grow/shrink.
-12. **Realistic data**: German street names, real distances, plausible ETAs and temperatures.
-13. **Dark theme**: Every surface must be dark. Zero white/light backgrounds.
-14. **BMW Blue**: #1C69D4 for active dock item, active route, primary buttons.
-15. **Nesting**: Components with children in the tree render \`{children}\`.
-15b. **NO EMOJI**: Never use emoji characters (📍🎵📞🚗🔊⛽❄♨⚡🧭⚙🅿🍽☕🍔🏦💊 etc.) anywhere in the UI. Use ONLY geometric Unicode symbols (▲▶●◎★✕☰♪☏△▽✳), CSS-drawn shapes (div+border+border-radius), or inline SVG. Emoji destroy BMW's precise, technical aesthetic.
+10. **Touch targets**: All interactive elements >= 64px (minimum 48px for secondary actions).
+11. **Icons**: IMMER \`import BMWIcon from '../hmi/BMWIcons.jsx'\` verwenden. KEINE eigenen Icons, KEINE Emoji, KEINE Unicode-Symbole fuer UI-Icons. Nur BMWIcon mit den verfuegbaren \`name\`-Werten.
+12. **No hallucinated elements**: ONLY implement UI elements that exist in the component tree. Do NOT add speed displays, route panels, search bars, or any other widget that is not in the wireframe. The tree is the single source of truth.
+13. **Dark theme**: Background #0A1428. Cards use gradient. Zero white/light backgrounds.
+14. **BMW Blue**: #1C69D4 for active states, primary buttons, selected items.
+15. **NO EMOJI**: Never. Use BMWIcon for all icon needs.
+16. **Card styling**: Cards MUST use \`background: linear-gradient(180deg, #243757 0%, #1B2A45 100%)\` with \`box-shadow: 0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)\`. Never flat single-color cards.
+17. **Labels**: ALL CAPS labels IMMER mit \`letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 14, color: "#A8B5C8"\`.
+18. **Chrome**: KEINE eigenen Header/Footer/SideSlots generieren. NUR die pre-built Komponenten aus \`hmi/\` importieren.
+19. **Buttons**: border-radius 4-8px (NICHT 999px ausser Pills/Badges). CTA-Buttons: solid #1C69D4 mit glow shadow.
 
-## CRITICAL — File completeness rules (violations will break the app)
+## CRITICAL — File completeness rules
 
-16. **Every \`// FILE:\` block MUST be a complete, working React component.** It MUST contain an \`import React\` statement, a component function, JSX return, and \`export default ComponentName\`. NEVER output a file that contains only a comment like "already defined above" or "see parent component" — that will crash the app.
-17. **Every \`import Foo from './Foo.jsx'\` MUST have a matching \`// FILE: Foo.jsx\` block in your output.** If you import it, you must generate it. No exceptions.
-18. **No duplicate merging**: If two nodes in the tree have similar names, generate BOTH as separate complete files. Do NOT skip one and write "duplicate guard" or "merged into parent". Each file stands alone.
-19. **Self-check before finishing**: Mentally verify that every import statement across all files resolves to a \`// FILE:\` block you actually generated. If any import is missing, add the file.
+20. **Every \`// FILE:\` block MUST be a complete, working component** with import, function, JSX, export default.
+21. **Every import MUST resolve** — either to a \`// FILE:\` block you generated, OR to \`../hmi/BMWIcons.jsx\` / \`../hmi/HMIChrome.jsx\` (pre-built).
+22. **No duplicate merging**: Each file stands alone.
+23. **Self-check**: Verify all imports resolve before finishing.
 
 ## Output Format
 
@@ -368,13 +601,365 @@ Fenced code blocks, each starting with \`// FILE:\`:
 \`\`\`jsx
 // FILE: ComponentName.jsx
 import React from 'react';
+import BMWIcon from '../hmi/BMWIcons.jsx';
 // ...
 \`\`\`
 
-## Example
-
-${EXAMPLE_COMPONENT}
-
-Now generate all components. Leaf components first, then containers, then App.jsx last. Make it look and ${hasAPIs ? 'work' : 'feel'} like a real BMW iDrive screen.
+Now generate all content components, then App.jsx last. App.jsx MUSS die PFLICHT-STRUKTUR verwenden (HMIDisplay > MapBackground/Gradient > Content > Chrome). Dein Content muss EXAKT wie die Referenz-Patterns oben aussehen — gleiche Abstande, gleiche Schriftgrossen, gleiche Farben, gleiche Struktur. KEINE Abweichungen.
 `.trim();
 }
+
+// ---------------------------------------------------------------------------
+// Multi-frame prompt builder
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a prompt from multiple classified Figma frames.
+ * Understands relationships between frames and builds the full HMI context.
+ *
+ * @param {Array<{tree: object, classification: object, figmaRaw: object}>} frames
+ * @param {object} tokens
+ * @param {object} apiConfig
+ * @param {object} options
+ * @param {function} options.describePlacement — from frameClassifier
+ * @param {function} options.describeDefaultBackground — from frameClassifier
+ * @returns {string} Full prompt text
+ */
+export function buildMultiFramePrompt(frames, tokens, apiConfig = {}, options = {}) {
+  const { describePlacement, describeDefaultBackground } = options;
+
+  // Separate fullscreen frames from partial frames
+  const fullscreenFrames = frames.filter(f => !f.classification.isPartial);
+  const partialFrames = frames.filter(f => f.classification.isPartial);
+
+  // Determine primary screen context
+  const primaryContext = fullscreenFrames.length > 0
+    ? fullscreenFrames[0].classification.screenContext
+    : partialFrames[0]?.classification.screenContext || 'navigation';
+
+  // Collect all component names and types across all frames
+  const allNames = new Set();
+  const allTypes = new Set();
+  for (const f of frames) {
+    collectComponentNames(f.tree, allNames);
+    collectTypes(f.tree, allTypes);
+  }
+  const componentNames = [...allNames];
+  const usedTypes = [...allTypes];
+
+  // Detect header/footer across ALL frames
+  const headerTypes = ['statusBar', 'header', 'navbar'];
+  const footerTypes = ['dock', 'footer', 'climateControl'];
+  let hasHeader = false;
+  let hasFooter = false;
+  for (const f of frames) {
+    if (hasTypeInTree(f.tree, headerTypes)) hasHeader = true;
+    if (hasTypeInTree(f.tree, footerTypes)) hasFooter = true;
+  }
+
+  const hasAPIs = apiConfig.hasAPIs;
+  const hasMap = apiConfig.promptSections?.some(s => s.includes('MapLibre'));
+  const pkgNames = Object.keys(apiConfig.packages || {});
+
+  // Build API sections (same as single-frame)
+  const apiSection = hasAPIs ? `
+## Available APIs & Services
+${apiConfig.promptSections.join('\n\n')}
+` : '';
+
+  const serviceLayerSection = hasAPIs ? `
+## Service Layer Architecture
+Organize API code in separate files:
+- \`services/*.js\` — API wrappers
+- \`hooks/*.js\` — React custom hooks
+- \`context/*.jsx\` — React contexts
+` : '';
+
+  // Build frame descriptions
+  let frameDescriptions = '';
+  for (let i = 0; i < frames.length; i++) {
+    const { tree, classification } = frames[i];
+    const trimmed = trimTree(tree);
+    const placement = describePlacement ? describePlacement(classification) : '';
+    const frameNames = [...collectComponentNames(tree)];
+
+    frameDescriptions += `
+### Frame ${i + 1}: "${classification.frameName}" — ${classification.frameType}
+
+${placement}
+
+**Komponenten:** ${frameNames.join(', ')}
+**Erkannte Typen:** ${[...collectTypes(tree)].join(', ')}
+**Dimensionen:** ${classification.dimensions.width}×${classification.dimensions.height}px
+
+\`\`\`json
+${JSON.stringify(trimmed, null, 2)}
+\`\`\`
+
+`;
+  }
+
+  // Build background context for partial frames
+  let backgroundSection = '';
+  if (partialFrames.length > 0 && fullscreenFrames.length === 0) {
+    const bgContext = describeDefaultBackground
+      ? describeDefaultBackground(partialFrames[0].classification)
+      : 'Der Hintergrund ist der BMW Standard-Canvas (#0A1428).';
+
+    backgroundSection = `
+## Hintergrund-Kontext (automatisch generiert)
+
+Die Wireframes enthalten keinen vollständigen Bildschirm. Du musst den gesamten HMI-Screen aufbauen und die Wireframe-Inhalte an der richtigen Position einsetzen.
+
+${bgContext}
+
+Das vollständige HMI-Layout muss generiert werden:
+- Vollflächiger Hintergrund (1920×720px) mit dem passenden Screen-Kontext
+- Standard BMW HMI Header (48px) und Footer mit Klima + Quick-Actions (96px)
+- Die Wireframe-Inhalte werden an der beschriebenen Position platziert
+- Alles drumherum wird aus dem BMW HMI Design System aufgebaut
+`;
+  }
+
+  // Build relationship section for multi-frame
+  let relationshipSection = '';
+  if (frames.length > 1) {
+    relationshipSection = `
+## Frame-Zusammenhänge
+
+Diese ${frames.length} Frames gehören zusammen und bilden EIN vollständiges UI:
+${frames.map((f, i) => `${i + 1}. **"${f.classification.frameName}"** → ${f.classification.frameType} (${f.classification.placement})`).join('\n')}
+
+${fullscreenFrames.length > 0
+  ? `Der Hauptbildschirm ist Frame "${fullscreenFrames[0].classification.frameName}". Die anderen Frames werden darauf platziert:`
+  : `Kein Frame ist ein vollständiger Bildschirm. Baue den gesamten HMI-Screen auf und platziere die Frames:`}
+${partialFrames.map(f => `- "${f.classification.frameName}" → ${describePlacement ? describePlacement(f.classification) : f.classification.placement}`).join('\n')}
+
+**App.jsx** muss alle Frames in einer einzigen Komposition vereinen. Verwende \`position: relative\` auf dem Root-Container und \`position: absolute\` für Overlays/Popups.
+${partialFrames.some(f => f.classification.frameType === 'popup' || f.classification.frameType === 'modal')
+  ? 'Popups/Modals verwenden useState zum Öffnen/Schließen. Zeige sie initial als geöffnet.'
+  : ''}
+`;
+  }
+
+  const rule8 = hasAPIs
+    ? `8. **External libraries**: Use ONLY React and these packages (already in package.json): ${pkgNames.join(', ') || 'none — only browser fetch()'}. For API calls use the browser's built-in \`fetch()\`. No additional npm packages.`
+    : `8. **No external libraries**: Only React. No framer-motion, no MUI, no map libraries.`;
+  const rule9 = hasMap
+    ? `9. **Map**: react-map-gl/maplibre + MapTiler Dark vector tiles. Float controls with position absolute. Custom Marker components.`
+    : `9. **Map placeholder**: Dark containers (#0F1A2C) with gradients. No real maps.`;
+
+  return `
+You are a senior React engineer building a BMW in-car HMI interface. Generate a complete, working React application from ${frames.length > 1 ? `${frames.length} Figma wireframes` : 'a Figma wireframe'} that faithfully implements the wireframe as a BMW infotainment screen (Operating System X / Panoramic Vision style). Implement ONLY the elements present in the wireframe — do not add, invent, or hallucinate any UI elements that are not in the component tree.
+
+${frames.length > 1 ? `**MULTI-FRAME INPUT:** Du erhältst ${frames.length} Figma-Frames die zusammengehören. Analysiere die Zusammenhänge und baue EIN einheitliches UI.` : ''}
+${partialFrames.length > 0 ? `**PARTIAL WIREFRAME:** ${partialFrames.length === frames.length ? 'Alle' : 'Einige'} Frames sind keine vollständigen Screens. Der fehlende HMI-Kontext wird durch pre-built Chrome-Komponenten bereitgestellt.` : ''}
+
+## BMW HMI DESIGN SYSTEM — VERBINDLICH
+
+(Alle Regeln aus dem BMW HMI Design System gelten — siehe Design Tokens unten.)
+
+### Kurzreferenz — Die wichtigsten Werte
+
+**Surfaces (NIEMALS neutral-schwarz):**
+Canvas #0A1428 | Elevated #1B2A45 | Elevated-Alt #243757 | Strong #2A4170
+
+**Card-Gradient:** \`linear-gradient(180deg, #243757 0%, #1B2A45 100%)\` + \`box-shadow: 0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)\`
+
+**BMW Blue:** #1C69D4 (base) | #2D7AE8 (hover) | #1656B0 (pressed)
+**Text:** #FFFFFF | #A8B5C8 | #5C6B82 | #3D4A60
+**Status:** Warning #F0C040 | Danger #E63946 | Success #3CD278 | Info #5BA3FF
+**Font:** "BMW Type Next", "Inter", system-ui, sans-serif
+**Touch:** ≥ 64px | Layout: Header 48px, Footer 96px, Side 80px
+**Radius:** Buttons 8px | Cards 12-16px | Search 24px | Pills 999px
+**Motion:** 150-250ms, cubic-bezier(0.4, 0, 0.2, 1) — keine Springs/Bounces
+**Icons:** Outline/Line-Art SVG, 1.75-2px stroke, 24px. KEINE EMOJI.
+${backgroundSection}${relationshipSection}
+## Wireframe-Daten
+
+${frames.length === 1 ? `Component types: ${usedTypes.join(', ')}` : ''}
+${hasAPIs ? `Dynamic services: ${apiConfig.detectedServices.join(', ')}` : ''}
+${apiSection}${serviceLayerSection}
+${frameDescriptions}
+
+## Design Tokens
+
+\`\`\`json
+${JSON.stringify(tokens, null, 2)}
+\`\`\`
+
+## PRE-BUILT HMI CHROME (in src/hmi/ — NICHT neu generieren!)
+
+Die folgenden Komponenten sind FERTIG und werden automatisch in \`src/hmi/\` bereitgestellt.
+Du MUSST sie importieren und verwenden. Generiere KEINE eigenen Header, Footer, Display oder Icon-Komponenten.
+KEINE ABWEICHUNG — diese Komponenten definieren das exakte BMW HMI Layout.
+
+**Verfuegbare Imports (aus Komponenten-Dateien):**
+\`\`\`jsx
+import BMWIcon from '../hmi/BMWIcons.jsx';
+import { HMIDisplay, HMIHeader, HMIFooter, LeftSideSlot, RightSideSlot, MapBackground } from '../hmi/HMIChrome.jsx';
+\`\`\`
+
+**Aus App.jsx (eine Ebene hoeher):**
+\`\`\`jsx
+import BMWIcon from './hmi/BMWIcons.jsx';
+import { HMIDisplay, HMIHeader, HMIFooter, LeftSideSlot, RightSideSlot, MapBackground } from './hmi/HMIChrome.jsx';
+\`\`\`
+
+**HMIDisplay** — Parallelogramm-Container (1920x720), auto-skaliert auf Viewport, chamfered corners. ALLES kommt da rein.
+**HMIHeader** — Transparente floating Statusleiste: Links Wrench-Icon+Badge, Rechts Bell, Temp, Mute, BT, WiFi, Mic, Avatar-Ring, Uhr.
+  Props: \`{ title?, leftIcon?, warningCount?, outdoor? }\`
+**HMIFooter** — Klima links + 7 Quick-Action Icons (64x64, radius 16) + Klima rechts.
+  Props: \`{ active?, onTab? }\` — active: "media"|"nav"|"phone"|"home"|"fan"|"car"|"apps"
+**LeftSideSlot** — Fahrzeug-Icons (Tuer-Schematic, Kamera, Recording-Dot) am linken Rand, geneigt.
+**RightSideSlot** — Parallelogramm-Buttons im chamfered Bereich (Settings, Compass/N, Assist View, Park-Assist-Halo).
+  Props: \`{ onClose?, showPark? }\`
+**MapBackground** — SVG Nacht-Map-Placeholder (dunkle Strassen auf #0F1A2C).
+**BMWIcon** — Line-art SVG Icons, 1.75px stroke.
+  Props: \`{ name, size?, color?, style? }\`
+  Names: note, play, forward, phone, home, fan, car, apps, bell, mute, bluetooth, wifi, mic, wrench, user, triangleAlert, seatbelt, door, minus, plus, seat, park, pin, compass, search, chevronRight, chevronDown, close, bolt, charge, speaker, camera, record, music, settings, arrow, shield
+
+## Your Task
+
+Generate ONLY die Content-Komponenten. Chrome (Display, Header, Footer, SideSlots) ist bereits vorhanden.
+
+Files to create:
+
+${componentNames.map(n => `- ${n}.jsx`).join('\n')}
+- App.jsx (root — MUSS HMIDisplay/Header/Footer/SideSlots importieren und verwenden${hasAPIs ? ', wraps in context providers' : ''})
+
+## PFLICHT-STRUKTUR fuer App.jsx
+
+\`\`\`jsx
+// FILE: App.jsx
+import React from 'react';
+import { HMIDisplay, HMIHeader, HMIFooter, LeftSideSlot, RightSideSlot, MapBackground } from './hmi/HMIChrome.jsx';
+// import your content components...
+
+const App = () => {
+  return (
+    <HMIDisplay>
+      {/* Background: MapBackground fuer Map-Screens, oder solid gradient fuer andere */}
+      <MapBackground />
+      {/* Oder fuer Non-Map-Screens: */}
+      {/* <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,#0E1B30,#0A1428)" }}/> */}
+
+      {/* CONTENT — position absolute, mit Padding fuer Chrome-Zonen */}
+      <div style={{ position: "absolute", inset: 0, padding: "70px 280px 110px 240px", overflow: "hidden" }}>
+        {/* Deine Content-Komponenten hier */}
+      </div>
+
+      {/* CHROME — IMMER vorhanden, KEINE Aenderungen */}
+      <HMIHeader />
+      <LeftSideSlot />
+      <RightSideSlot showPark={false} />
+      <HMIFooter active="home" />
+    </HMIDisplay>
+  );
+};
+
+export default App;
+\`\`\`
+
+**WICHTIG:**
+- Content MUSS innerhalb \`padding: "70px 280px 110px 240px"\` platziert werden (Header oben, RightSlot+Chamfer rechts, Footer unten, LeftSlot+Lean links)
+- Content-Elemente die ueber der Map schweben: \`position: absolute\` innerhalb des Content-Containers
+- Cards schweben UEBER dem Hintergrund — niemals full-screen ersetzen
+- Fuer Map-Screens: \`<MapBackground />\` als erstes Kind von HMIDisplay
+- Fuer andere Screens: solid Gradient \`linear-gradient(180deg, #0E1B30, #0A1428)\`
+${frames.length > 1 ? `- **Multi-Frame:** Alle ${frames.length} Frames werden in EINER App.jsx vereint. Verwende \`position: relative\` auf dem Content-Container und \`position: absolute\` fuer Overlays/Popups.` : ''}
+${partialFrames.some(f => f.classification.frameType === 'popup' || f.classification.frameType === 'modal')
+  ? '- Popups/Modals verwenden useState zum Oeffnen/Schliessen. Zeige sie initial als geoeffnet.'
+  : ''}
+
+## REFERENZ — So sieht korrekter BMW HMI Content aus
+
+### Map Screen Content (Referenz-Pattern):
+\`\`\`jsx
+{/* Search bar — schwebend ueber der Map */}
+<div style={{
+  position: "absolute", top: 94, left: 200, width: 360,
+  background: "rgba(27,42,69,0.85)", backdropFilter: "blur(8px)",
+  borderRadius: 4, padding: "12px 18px",
+  display: "flex", alignItems: "center", gap: 12,
+}}>
+  <BMWIcon name="search" size={20} color="#A8B5C8"/>
+  <span style={{ fontSize: 18, color: "#8C9BB0" }}>Search</span>
+</div>
+
+{/* POI info card */}
+<div style={{
+  position: "absolute", top: 164, left: 200, width: 360,
+  background: "linear-gradient(180deg,#243757,#1B2A45)",
+  borderRadius: 4, padding: 20,
+  boxShadow: "0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)",
+}}>
+  <div style={{ fontSize: 14, letterSpacing: "0.06em", textTransform: "uppercase", color: "#A8B5C8", marginBottom: 8 }}>A9 · Highway</div>
+  <div style={{ fontSize: 28, fontWeight: 300, color: "#fff", lineHeight: 1.15 }}>AC Mer Germany GmbH</div>
+  <div style={{ fontSize: 16, color: "#A8B5C8", marginTop: 6 }}>Schlossstrasse 14, 80803 Muenchen</div>
+</div>
+\`\`\`
+
+### Notification List (Referenz-Pattern):
+\`\`\`jsx
+{/* Notification card */}
+<div style={{
+  display: "flex", alignItems: "center", gap: 16,
+  background: "linear-gradient(180deg,#243757,#1B2A45)", borderRadius: 12,
+  padding: "16px 20px", boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+}}>
+  <div style={{ width: 44, height: 44, borderRadius: 12,
+    background: "rgba(255,255,255,0.06)",
+    display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+    <BMWIcon name="wrench" size={26} color="#F0C040"/>
+  </div>
+  <div style={{ flex: 1 }}>
+    <div style={{ fontSize: 20, color: "#fff" }}>High-voltage system fault</div>
+    <div style={{ fontSize: 16, color: "#A8B5C8", marginTop: 2 }}>Drive carefully. Visit a Service Partner.</div>
+  </div>
+  <span style={{ fontSize: 14, color: "#5C6B82" }}>2:48 pm</span>
+</div>
+\`\`\`
+
+## Rules
+
+1. **File format**: Each file starts with \`// FILE: ComponentName.jsx\` then \`// Figma: [type] "[name]"\`
+2. **Inline styles only**. No CSS files, no className. CSS vars (\`var(--bmw-blue-500)\`) from \`colors_and_type.css\` are fine.
+3. **Layout**: Content innerhalb von HMIDisplay (1920x720 canvas). Position absolute fuer schwebende Elemente. Content-Padding: \`70px 280px 110px 240px\`.
+4. **Props**: Each component accepts \`children\` and \`style\` (spread at end for overrides).
+5. **ES Modules**: \`import/export\`, no CommonJS.
+6. **Functional components**: Use hooks (useState, useEffect, useContext) for state and side effects.
+7. **Text content**: Use \`content\` from the tree. If a text node has no content, use plausible German placeholder text for that specific node. NEVER add text nodes that don't exist in the tree.
+${rule8}
+${rule9}
+10. **Touch targets**: All interactive elements >= 64px (minimum 48px for secondary actions).
+11. **Icons**: IMMER \`import BMWIcon from '../hmi/BMWIcons.jsx'\` verwenden. KEINE eigenen Icons, KEINE Emoji, KEINE Unicode-Symbole fuer UI-Icons. Nur BMWIcon mit den verfuegbaren \`name\`-Werten.
+12. **No hallucinated elements**: ONLY implement UI elements that exist in the component tree. Do NOT add speed displays, route panels, search bars, or any other widget that is not in the wireframe. The tree is the single source of truth.
+13. **Dark theme**: Background #0A1428. Cards use gradient. Zero white/light backgrounds.
+14. **BMW Blue**: #1C69D4 for active states, primary buttons, selected items.
+15. **NO EMOJI**: Never. Use BMWIcon for all icon needs.
+16. **Card styling**: Cards MUST use \`background: linear-gradient(180deg, #243757 0%, #1B2A45 100%)\` with \`box-shadow: 0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)\`. Never flat single-color cards.
+17. **Labels**: ALL CAPS labels IMMER mit \`letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 14, color: "#A8B5C8"\`.
+18. **Chrome**: KEINE eigenen Header/Footer/SideSlots generieren. NUR die pre-built Komponenten aus \`hmi/\` importieren.
+19. **Buttons**: border-radius 4-8px (NICHT 999px ausser Pills/Badges). CTA-Buttons: solid #1C69D4 mit glow shadow.
+
+## CRITICAL — File completeness rules
+
+20. **Every \`// FILE:\` block MUST be a complete, working component** with import, function, JSX, export default.
+21. **Every import MUST resolve** — either to a \`// FILE:\` block you generated, OR to \`../hmi/BMWIcons.jsx\` / \`../hmi/HMIChrome.jsx\` (pre-built).
+22. **No duplicate merging**: Each file stands alone.
+23. **Self-check**: Verify all imports resolve before finishing.
+
+## Output Format
+
+\`\`\`jsx
+// FILE: ComponentName.jsx
+import React from 'react';
+import BMWIcon from '../hmi/BMWIcons.jsx';
+// ...
+\`\`\`
+
+Now generate all content components, then App.jsx last. App.jsx MUSS die PFLICHT-STRUKTUR verwenden (HMIDisplay > MapBackground/Gradient > Content > Chrome). Dein Content muss EXAKT wie die Referenz-Patterns oben aussehen — gleiche Abstande, gleiche Schriftgrossen, gleiche Farben, gleiche Struktur. KEINE Abweichungen. ${frames.length > 1 ? 'Vereinige alle Frames zu einem kohaerenten HMI-Screen.' : ''}
+`.trim();
+}
+
