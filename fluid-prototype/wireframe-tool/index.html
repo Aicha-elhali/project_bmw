@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BMW HMI — Wireframe Tool</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "BMW Type Next", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #050B17;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 24px 40px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 300;
+      letter-spacing: 0.02em;
+    }
+
+    header .badge {
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #0A1428;
+      background: #1C69D4;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-weight: 500;
+    }
+
+    .container {
+      flex: 1;
+      display: flex;
+      gap: 24px;
+      padding: 24px 40px;
+      min-height: 0;
+    }
+
+    .left-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .right-panel {
+      width: 380px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel-label {
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #A8B5C8;
+      font-weight: 500;
+    }
+
+    .drop-zone {
+      flex: 1;
+      border: 2px dashed #2A4170;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      min-height: 300px;
+      position: relative;
+    }
+
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: #1C69D4;
+      background: rgba(28,105,212,0.06);
+    }
+
+    .drop-zone.has-content {
+      border-style: solid;
+      border-color: #34538D;
+      cursor: default;
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .drop-zone.has-content input[type="file"] { display: none; }
+
+    .drop-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .drop-icon svg { width: 24px; height: 24px; stroke: #5BA3FF; fill: none; stroke-width: 1.75; }
+
+    .drop-text { font-size: 15px; color: #A8B5C8; }
+
+    .html-editor {
+      flex: 1;
+      width: 100%;
+      background: #0A1428;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      color: #A8B5C8;
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      resize: none;
+      outline: none;
+    }
+
+    .html-editor:focus { box-shadow: 0 0 0 1px #1C69D4; }
+
+    .tree-view {
+      flex: 1;
+      overflow-y: auto;
+      background: #0A1428;
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 13px;
+      font-family: "SF Mono", "Fira Code", monospace;
+      line-height: 1.7;
+    }
+
+    .tree-node { padding-left: 16px; }
+    .tree-node-name {
+      color: #5BA3FF;
+      cursor: pointer;
+    }
+    .tree-node-name:hover { text-decoration: underline; }
+    .tree-node-type { color: #5C6B82; font-size: 11px; margin-left: 6px; }
+    .tree-node-dim { color: #3D4A60; font-size: 11px; margin-left: 4px; }
+
+    .node-edit-input {
+      background: #1B2A45;
+      border: 1px solid #1C69D4;
+      border-radius: 4px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 13px;
+      padding: 1px 6px;
+      outline: none;
+      width: 160px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      padding: 20px 40px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background 0.15s, opacity 0.15s;
+    }
+
+    .btn-primary {
+      background: #1C69D4;
+      color: #fff;
+    }
+    .btn-primary:hover { background: #2D7AE8; }
+    .btn-primary:active { background: #1656B0; }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-secondary {
+      background: #1B2A45;
+      color: #A8B5C8;
+    }
+    .btn-secondary:hover { background: #243757; color: #fff; }
+
+    .progress-log {
+      flex: 1;
+      overflow-y: auto;
+      background: #0A1428;
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 13px;
+      font-family: "SF Mono", "Fira Code", monospace;
+      line-height: 1.7;
+      display: none;
+    }
+
+    .progress-log.visible { display: block; }
+
+    .log-entry { color: #A8B5C8; }
+    .log-entry.phase { color: #5BA3FF; font-weight: 500; }
+    .log-entry.error { color: #E63946; }
+    .log-entry.done { color: #3CD278; }
+
+    .preview-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #3CD278;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      padding: 12px 0;
+    }
+    .preview-link:hover { text-decoration: underline; }
+
+    .tab-bar {
+      display: flex;
+      gap: 2px;
+      background: #1B2A45;
+      border-radius: 8px;
+      padding: 2px;
+    }
+
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #5C6B82;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      border: none;
+      background: transparent;
+    }
+    .tab.active {
+      background: #243757;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>BMW HMI Wireframe Tool</h1>
+  <span class="badge">Claude Design</span>
+</header>
+
+<div class="container">
+  <div class="left-panel">
+    <div class="tab-bar">
+      <button class="tab active" data-tab="handoff" onclick="switchTab('handoff')">Handoff Link</button>
+      <button class="tab" data-tab="upload" onclick="switchTab('upload')">Upload</button>
+      <button class="tab" data-tab="editor" onclick="switchTab('editor')">HTML Editor</button>
+    </div>
+
+    <div id="handoff-tab" style="flex:1;display:flex;flex-direction:column;gap:16px;justify-content:center;align-items:center;min-height:300px">
+      <div class="drop-icon">
+        <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="#5BA3FF" fill="none" stroke-width="1.75"/></svg>
+      </div>
+      <span class="drop-text">Claude Design Handoff-Link einfuegen</span>
+      <div style="display:flex;gap:8px;width:100%;max-width:600px">
+        <input id="handoff-url" type="url" placeholder="https://claude.ai/design/..." style="flex:1;background:#0A1428;border:1px solid #2A4170;border-radius:8px;padding:12px 16px;color:#fff;font-family:inherit;font-size:14px;outline:none" onfocus="this.style.borderColor='#1C69D4'" onblur="this.style.borderColor='#2A4170'" onkeydown="if(event.key==='Enter')fetchHandoffUrl()">
+        <button class="btn-primary" onclick="fetchHandoffUrl()" style="padding:12px 20px;white-space:nowrap">Laden</button>
+      </div>
+      <span style="font-size:12px;color:#3D4A60">Claude Design &rarr; Export &rarr; Handoff to Claude Code</span>
+    </div>
+
+    <div id="upload-tab" class="drop-zone" style="display:none" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+      <input type="file" accept=".html,.htm" onchange="handleFileSelect(event)">
+      <div class="drop-icon">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+      </div>
+      <span class="drop-text">HTML-Datei hierher ziehen oder klicken</span>
+      <span style="font-size:12px;color:#3D4A60">Claude Design Export (.html)</span>
+    </div>
+
+    <textarea id="editor-tab" class="html-editor" style="display:none" placeholder="HTML hier einfuegen..." oninput="onHtmlChange()"></textarea>
+  </div>
+
+  <div class="right-panel">
+    <span class="panel-label">Component Tree</span>
+    <div id="tree-view" class="tree-view">
+      <span style="color:#3D4A60">Noch keine Datei geladen</span>
+    </div>
+
+    <span class="panel-label">Pipeline Log</span>
+    <div id="progress-log" class="progress-log visible">
+      <span style="color:#3D4A60">Bereit</span>
+    </div>
+  </div>
+</div>
+
+<div class="actions">
+  <button class="btn-primary" id="generate-btn" onclick="startGeneration()" disabled>Generate Prototype</button>
+  <button class="btn-secondary" onclick="resetAll()">Reset</button>
+  <div style="flex:1"></div>
+  <a id="preview-link" class="preview-link" href="#" target="_blank" style="display:none">
+    Preview oeffnen &rarr;
+  </a>
+</div>
+
+<script>
+const SERVER = `http://localhost:${location.port || 3001}`;
+let currentHtml = '';
+let handoffUrl = '';
+let inputMode = 'handoff';
+let parsedTree = null;
+let nameOverrides = {};
+
+// Tab switching
+function switchTab(tab) {
+  inputMode = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.getElementById('handoff-tab').style.display = tab === 'handoff' ? '' : 'none';
+  document.getElementById('upload-tab').style.display = tab === 'upload' ? '' : 'none';
+  document.getElementById('editor-tab').style.display = tab === 'editor' ? '' : 'none';
+}
+
+// Handoff URL
+async function fetchHandoffUrl() {
+  const urlInput = document.getElementById('handoff-url');
+  const url = urlInput.value.trim();
+  if (!url) return;
+
+  handoffUrl = url;
+  addLog('Lade Design von Handoff-Link…', 'phase');
+  document.getElementById('generate-btn').disabled = false;
+
+  // Try to fetch for preview (may fail due to CORS — that's OK, server will fetch it)
+  try {
+    const resp = await fetch(url);
+    if (resp.ok) {
+      currentHtml = await resp.text();
+      parseAndPreview();
+      addLog('Vorschau geladen', '');
+    }
+  } catch {
+    addLog('Vorschau nicht moeglich (CORS) — Server holt die Datei direkt', '');
+  }
+}
+
+// Drag & drop
+function handleDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function handleDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+
+function handleDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) loadFile(file);
+}
+
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) loadFile(file);
+}
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    currentHtml = e.target.result;
+    document.getElementById('editor-tab').value = currentHtml;
+    const dropZone = document.getElementById('upload-tab');
+    dropZone.classList.add('has-content');
+    dropZone.innerHTML = `
+      <div class="drop-icon">
+        <svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="#3CD278"/></svg>
+      </div>
+      <span style="color:#fff;font-weight:500">${file.name}</span>
+      <span style="font-size:12px;color:#A8B5C8">${(file.size / 1024).toFixed(1)} KB</span>
+    `;
+    parseAndPreview();
+  };
+  reader.readAsText(file);
+}
+
+function onHtmlChange() {
+  currentHtml = document.getElementById('editor-tab').value;
+  if (currentHtml.trim().length > 20) parseAndPreview();
+}
+
+// Parse HTML client-side for tree preview
+function parseAndPreview() {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(currentHtml, 'text/html');
+  const body = doc.body;
+
+  parsedTree = domToTree(body, 0);
+  renderTree(parsedTree);
+  document.getElementById('generate-btn').disabled = false;
+}
+
+function domToTree(el, depth) {
+  if (el.nodeType === 3) {
+    const text = el.textContent.trim();
+    if (!text) return null;
+    return { tag: '#text', text: text.slice(0, 50), children: [], depth };
+  }
+  if (el.nodeType !== 1) return null;
+
+  const skip = ['SCRIPT', 'STYLE', 'META', 'LINK', 'HEAD', 'TITLE'];
+  if (skip.includes(el.tagName)) return null;
+
+  const style = el.getAttribute('style') || '';
+  const w = extractPx(style, 'width');
+  const h = extractPx(style, 'height');
+
+  const node = {
+    tag: el.tagName.toLowerCase(),
+    id: el.id || null,
+    cls: el.className?.split?.(' ')[0] || null,
+    name: el.getAttribute('data-name') || el.getAttribute('aria-label') || el.id || el.className?.split?.(' ')[0] || el.tagName.toLowerCase(),
+    w, h,
+    depth,
+    children: [],
+  };
+
+  for (const child of el.childNodes) {
+    const c = domToTree(child, depth + 1);
+    if (c) node.children.push(c);
+  }
+
+  return node;
+}
+
+function extractPx(style, prop) {
+  const m = style.match(new RegExp(prop + '\\s*:\\s*(\\d+)'));
+  return m ? parseInt(m[1]) : null;
+}
+
+function renderTree(tree) {
+  const container = document.getElementById('tree-view');
+  container.innerHTML = '';
+  if (!tree) { container.innerHTML = '<span style="color:#3D4A60">Kein Baum</span>'; return; }
+  container.appendChild(renderNode(tree));
+}
+
+function renderNode(node) {
+  const div = document.createElement('div');
+  div.className = 'tree-node';
+  div.style.paddingLeft = (node.depth * 16) + 'px';
+
+  if (node.tag === '#text') {
+    div.innerHTML = `<span style="color:#F0C040">"${node.text}"</span>`;
+    return div;
+  }
+
+  const nameSpan = document.createElement('span');
+  nameSpan.className = 'tree-node-name';
+  nameSpan.textContent = nameOverrides[node.name] || node.name;
+  nameSpan.title = 'Klicken zum Bearbeiten';
+  nameSpan.onclick = () => editNodeName(nameSpan, node);
+
+  const typeSpan = document.createElement('span');
+  typeSpan.className = 'tree-node-type';
+  typeSpan.textContent = `<${node.tag}>`;
+
+  div.appendChild(nameSpan);
+  div.appendChild(typeSpan);
+
+  if (node.w || node.h) {
+    const dimSpan = document.createElement('span');
+    dimSpan.className = 'tree-node-dim';
+    dimSpan.textContent = `${node.w || '?'}x${node.h || '?'}`;
+    div.appendChild(dimSpan);
+  }
+
+  const wrapper = document.createElement('div');
+  wrapper.appendChild(div);
+  for (const child of node.children) {
+    wrapper.appendChild(renderNode(child));
+  }
+  return wrapper;
+}
+
+function editNodeName(span, node) {
+  const input = document.createElement('input');
+  input.className = 'node-edit-input';
+  input.value = nameOverrides[node.name] || node.name;
+  input.onblur = () => {
+    if (input.value.trim() && input.value !== node.name) {
+      nameOverrides[node.name] = input.value.trim();
+    }
+    span.textContent = nameOverrides[node.name] || node.name;
+    input.replaceWith(span);
+  };
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { input.value = node.name; input.blur(); }
+  };
+  span.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+// Generation
+async function startGeneration() {
+  const btn = document.getElementById('generate-btn');
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+
+  const log = document.getElementById('progress-log');
+  log.innerHTML = '';
+
+  const link = document.getElementById('preview-link');
+  link.style.display = 'none';
+
+  const useUrl = inputMode === 'handoff' && handoffUrl && !currentHtml;
+
+  if (useUrl) {
+    addLog('Sende Handoff-Link an Pipeline…', 'phase');
+  } else {
+    addLog('Sende HTML an Pipeline…', 'phase');
+  }
+
+  try {
+    let response;
+    if (useUrl) {
+      response = await fetch(SERVER + '/api/generate-from-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: handoffUrl }),
+      });
+    } else {
+      response = await fetch(SERVER + '/api/generate-from-html', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/html' },
+        body: currentHtml,
+      });
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const event = JSON.parse(line);
+          handleEvent(event);
+        } catch {}
+      }
+    }
+
+    if (buffer.trim()) {
+      try { handleEvent(JSON.parse(buffer)); } catch {}
+    }
+  } catch (err) {
+    addLog('Verbindungsfehler: ' + err.message, 'error');
+    addLog('Laeuft der Server? npm run server', 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Generate Prototype';
+}
+
+function handleEvent(event) {
+  if (event.status === 'progress') {
+    const isNewPhase = event.phase;
+    addLog(event.message, isNewPhase ? 'phase' : '');
+  } else if (event.status === 'done') {
+    addLog('Generation abgeschlossen!', 'done');
+    if (event.previewUrl) {
+      const link = document.getElementById('preview-link');
+      link.href = event.previewUrl;
+      link.style.display = 'inline-flex';
+      addLog('Preview: ' + event.previewUrl, 'done');
+    }
+  } else if (event.status === 'error') {
+    addLog('Fehler: ' + event.message, 'error');
+  }
+}
+
+function addLog(text, type = '') {
+  const log = document.getElementById('progress-log');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry' + (type ? ' ' + type : '');
+  entry.textContent = text;
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
+}
+
+function resetAll() {
+  currentHtml = '';
+  handoffUrl = '';
+  parsedTree = null;
+  nameOverrides = {};
+
+  document.getElementById('handoff-url').value = '';
+  document.getElementById('editor-tab').value = '';
+  document.getElementById('generate-btn').disabled = true;
+  document.getElementById('preview-link').style.display = 'none';
+  document.getElementById('tree-view').innerHTML = '<span style="color:#3D4A60">Noch keine Datei geladen</span>';
+  document.getElementById('progress-log').innerHTML = '<span style="color:#3D4A60">Bereit</span>';
+
+  const dropZone = document.getElementById('upload-tab');
+  dropZone.classList.remove('has-content');
+  dropZone.innerHTML = `
+    <input type="file" accept=".html,.htm" onchange="handleFileSelect(event)">
+    <div class="drop-icon">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="#5BA3FF" fill="none" stroke-width="1.75"/></svg>
+    </div>
+    <span class="drop-text">HTML-Datei hierher ziehen oder klicken</span>
+    <span style="font-size:12px;color:#3D4A60">Claude Design Export (.html)</span>
+  `;
+}
+</script>
+
+</body>
+</html>

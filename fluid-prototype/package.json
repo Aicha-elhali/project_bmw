@@ -4,9 +4,11 @@
   "type": "module",
   "scripts": {
     "start": "node --env-file=.env pipeline.js",
-    "server": "node --env-file=.env server.js"
+    "server": "node --env-file=.env server.js",
+    "design": "node --env-file=.env server.js --run-design"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0"
+    "@anthropic-ai/sdk": "^0.39.0",
+    "node-html-parser": "^7.1.0"
   }
 }
