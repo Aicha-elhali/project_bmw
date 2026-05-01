@@ -28,11 +28,11 @@
 import { resolve, dirname } from 'path';
 import { fileURLToPath }    from 'url';
 
-import { getFigmaFrame, getFigmaFrames } from './src/figma/client.js';
+import { getFigmaFrame, getFigmaFrames, getFigmaScreenshot, setUseMCP, closeMCP } from './src/figma/client.js';
+import { buildFigmaToolDefinitions, handleToolCall } from './src/figma/mcpToolDefinitions.js';
 import { transformFrame }                from './src/transformer/index.js';
 import { applyDesignTokens, loadTokens } from './src/design/tokenEngine.js';
 import { resolveAPIs }                   from './src/generator/apiRegistry.js';
-import { buildGenerationPrompt, buildMultiFramePrompt } from './src/generator/promptBuilder.js';
 import { buildBackendPrompt, buildMultiFrameBackendPrompt } from './src/generator/backendPromptBuilder.js';
 import { buildFrontendPrompt, buildMultiFrameFrontendPrompt } from './src/generator/frontendPromptBuilder.js';
 import { generateBackend, generateFrontend }  from './src/generator/claudeClient.js';
@@ -96,10 +96,18 @@ async function run() {
   const figmaToken    = process.env.FIGMA_TOKEN      ?? args.token ?? '';
   const anthropicKey  = process.env.ANTHROPIC_API_KEY ?? args.key   ?? '';
   const figmaFileKey  = args.file  ?? 'TL9xgNNemU88nwUbSjiHQR';
-  const frameIds      = args.frames.length > 0 ? args.frames : ['16:4'];
+  const frameIds      = args.frames.length > 0 ? args.frames : ['76:25'];
   const tokensPath    = resolve(__dirname, 'tokens', 'tokens.json');
   const outputDir     = args.output ? resolve(args.output) : resolve(__dirname, 'output');
   const isMultiFrame  = frameIds.length > 1;
+  const useRest       = args['use-rest'] === true;
+
+  if (useRest) {
+    setUseMCP(false);
+    log('CONFIG', 'Using REST API (--use-rest)');
+  } else {
+    log('CONFIG', 'Using Figma MCP (fallback to REST if unavailable)');
+  }
 
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('  BMW HMI — Figma → UI Pipeline (Backend + Frontend)');
@@ -128,6 +136,22 @@ async function run() {
   } catch (err) {
     logError(`Figma fetch failed: ${err.message}`);
     process.exit(1);
+  }
+
+  // ── Phase 1b: Fetch Screenshot (MCP only) ──────────────────────────────
+  let figmaScreenshot = null;
+  if (!useRest) {
+    log('PHASE 1b', 'Fetching Figma screenshot via MCP…');
+    try {
+      figmaScreenshot = await getFigmaScreenshot(figmaFileKey, frameIds[0], figmaToken);
+      if (figmaScreenshot) {
+        logSuccess('Screenshot captured for validation');
+      } else {
+        logWarn('Screenshot not available');
+      }
+    } catch {
+      logWarn('Screenshot fetch failed — continuing without');
+    }
   }
 
   // ── Phase 2: Transform + Classify ──────────────────────────────────────
@@ -171,6 +195,16 @@ async function run() {
 
   const tokens = await loadTokens(tokensPath);
 
+  // ── Prepare MCP tools for Claude agents ─────────────────────────────────
+  const mcpOptions = !useRest ? {
+    tools: buildFigmaToolDefinitions(figmaFileKey, frameIds),
+    toolHandler: (name, input) => handleToolCall(name, input, figmaFileKey),
+  } : null;
+
+  if (mcpOptions) {
+    log('MCP', `${mcpOptions.tools.length} Figma tools available for Claude agents`);
+  }
+
   // ── Phase 4a: Backend Agent ────────────────────────────────────────────
   let backendFiles = null;
   let interfaceDoc = null;
@@ -185,7 +219,7 @@ async function run() {
       log('PHASE 4a', `Backend prompt: ${backendPrompt.length.toLocaleString()} chars`);
       log('PHASE 4a', 'Sending to Backend Agent…');
       try {
-        const result = await generateBackend(backendPrompt, anthropicKey);
+        const result = await generateBackend(backendPrompt, anthropicKey, mcpOptions);
         backendFiles = result.files;
         interfaceDoc = result.interfaceDoc;
         logSuccess(`Backend Agent generated ${backendFiles.size} files: ${[...backendFiles.keys()].join(', ')}`);
@@ -205,18 +239,19 @@ async function run() {
   // ── Phase 4b: Frontend Agent ───────────────────────────────────────────
   log('PHASE 4b', 'Building frontend prompt…');
   let frontendPrompt;
+  const mcpContext = mcpOptions ? { fileKey: figmaFileKey, nodeIds: frameIds } : null;
 
   if (isMultiFrame || classifiedFrames.some(f => f.classification.isPartial)) {
     frontendPrompt = buildMultiFrameFrontendPrompt(
       classifiedFrames, tokens, apiConfig,
       { describePlacement, describeDefaultBackground },
-      interfaceDoc, backendFiles,
+      interfaceDoc, backendFiles, '', mcpContext,
     );
     log('PHASE 4b', `Multi-frame frontend prompt: ${frontendPrompt.length.toLocaleString()} chars`);
   } else {
     frontendPrompt = buildFrontendPrompt(
       classifiedFrames[0].tree, tokens, apiConfig,
-      interfaceDoc, backendFiles,
+      interfaceDoc, backendFiles, '', mcpContext,
     );
     log('PHASE 4b', `Single-frame frontend prompt: ${frontendPrompt.length.toLocaleString()} chars`);
   }
@@ -224,7 +259,7 @@ async function run() {
   log('PHASE 4b', 'Sending to Frontend Agent…');
   let frontendFiles;
   try {
-    frontendFiles = await generateFrontend(frontendPrompt, anthropicKey);
+    frontendFiles = await generateFrontend(frontendPrompt, anthropicKey, mcpOptions);
     logSuccess(`Frontend Agent generated ${frontendFiles.size} files: ${[...frontendFiles.keys()].join(', ')}`);
   } catch (err) {
     logError(`Frontend Agent failed: ${err.message}`);
@@ -248,6 +283,8 @@ async function run() {
     maxIterations: maxValidations,
     tokens,
     interfaceDoc,
+    componentTrees: classifiedFrames.map(f => f.tree),
+    figmaScreenshot,
     onProgress: (msg) => log('VALIDATE', msg),
   });
 
@@ -289,6 +326,9 @@ async function run() {
   console.log('    npm install');
   console.log('    npm run dev\n');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+  // ── Cleanup MCP connection ────────────────────────────────────────────
+  await closeMCP().catch(() => {});
 }
 
 // ---------------------------------------------------------------------------

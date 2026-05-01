@@ -154,10 +154,41 @@ function isDecorativeShape(figmaNode, depth) {
 }
 
 // ---------------------------------------------------------------------------
+// Safe-zone constants (HMI Chrome layout boundaries)
+// ---------------------------------------------------------------------------
+
+const DISPLAY = { width: 1920, height: 720 };
+const SAFE_ZONE = { top: 70, right: 280, bottom: 110, left: 240 };
+const CONTENT_WIDTH  = DISPLAY.width  - SAFE_ZONE.left - SAFE_ZONE.right;   // 1400
+const CONTENT_HEIGHT = DISPLAY.height - SAFE_ZONE.top  - SAFE_ZONE.bottom;  // 540
+
+// ---------------------------------------------------------------------------
+// Blueprint frame preprocessing
+//
+// The Figma blueprint template has a fixed structure:
+//   Root (1400×540) → Formatbackground (decorative) + Ui Canvas (design area)
+// Flatten: remove Formatbackground, promote Ui Canvas's children to root.
+// ---------------------------------------------------------------------------
+
+function preprocessBlueprint(figmaFrame) {
+  const children = figmaFrame.children ?? [];
+  if (children.length < 2) return figmaFrame;
+
+  const bgLayer = children.find(c => /format.?background/i.test(c.name));
+  const uiCanvas = children.find(c => /ui.?canvas/i.test(c.name));
+
+  if (!bgLayer || !uiCanvas) return figmaFrame;
+
+  process.stderr.write('  [blueprint] Detected blueprint frame — flattening Ui Canvas, removing Formatbackground\n');
+  return { ...figmaFrame, children: uiCanvas.children ?? [] };
+}
+
+// ---------------------------------------------------------------------------
 // Core transformer
 // ---------------------------------------------------------------------------
 
 let _nodeCounter = 0;
+let _rootBox = null;
 
 /**
  * Transform a single Figma node into an internal navigation component.
@@ -210,6 +241,27 @@ export function transformNode(figmaNode, depth = 0) {
     children: [],
   };
 
+  if (_rootBox && _rootBox.width > 0 && _rootBox.height > 0) {
+    const relX = (box.x - _rootBox.x) / _rootBox.width;
+    const relY = (box.y - _rootBox.y) / _rootBox.height;
+    const relW = box.width  / _rootBox.width;
+    const relH = box.height / _rootBox.height;
+
+    node.relativeLayout = {
+      xPercent:      +(relX * 100).toFixed(1),
+      yPercent:      +(relY * 100).toFixed(1),
+      widthPercent:  +(relW * 100).toFixed(1),
+      heightPercent: +(relH * 100).toFixed(1),
+    };
+
+    node.safeZoneHint = {
+      left:   Math.round(box.x - _rootBox.x),
+      top:    Math.round(box.y - _rootBox.y),
+      width:  Math.round(box.width),
+      height: Math.round(box.height),
+    };
+  }
+
   if (figmaNode.children?.length) {
     const before = figmaNode.children.length;
     const filtered = figmaNode.children.filter(child => !isDecorativeShape(child, depth + 1));
@@ -233,7 +285,20 @@ let _filteredCount = 0;
 export function transformFrame(figmaFrame) {
   _nodeCounter = 0;
   _filteredCount = 0;
+  figmaFrame = preprocessBlueprint(figmaFrame);
+  _rootBox = figmaFrame.absoluteBoundingBox ?? { x: 0, y: 0, width: 1920, height: 720 };
   const tree = transformNode(figmaFrame);
   tree.hasDisplayShape = _filteredCount > 0;
+
+  const fw = Math.round(_rootBox.width);
+  const fh = Math.round(_rootBox.height);
+  tree.contentBounds = {
+    left:   0,
+    top:    0,
+    width:  fw,
+    height: fh,
+  };
+
+  _rootBox = null;
   return tree;
 }

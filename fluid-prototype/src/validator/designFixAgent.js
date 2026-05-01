@@ -101,8 +101,8 @@ import { HMIDisplay, HMIHeader, HMIFooter, LeftSideSlot, RightSideSlot, MapBackg
 const App = () => (
   <HMIDisplay>
     <MapBackground /> {/* or gradient for non-map screens */}
-    <div style={{ position: "absolute", inset: 0, padding: "70px 280px 110px 240px", overflow: "hidden" }}>
-      {/* Content components */}
+    <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
+      {/* Content components — positions are direct Figma coordinates */}
     </div>
     <HMIHeader />
     <LeftSideSlot />
@@ -117,16 +117,34 @@ const App = () => (
 When different components overlap each other in App.jsx:
 - Reposition one of the overlapping components so they occupy different screen regions
 - Do NOT restructure the internal layout of individual components — only change their position relative to each other
-- Content area is 1920×720 minus chrome zones (top 70px, right 280px, bottom 110px, left 240px) = effective 1400×540
 
 ## Offscreen Fix
 
 When fixing offscreen elements:
-- Clamp absolute positions within canvas: top [0, 720], left [0, 1920]
-- Respect chrome zones: content must be within padding 70px 280px 110px 240px
-- Reduce oversized popups/modals to fit within ~40% of screen
+- Content container uses \`position: absolute; inset: 0\` — NO top/left offset
+- Reduce oversized popups/modals to fit within the visible area
 - Add overflow: hidden to containers that leak
-- Compute: if top + height > 610 (720 - 110 footer), element overflows bottom. Fix by reducing height or moving up.
+
+## Safe-Zone Violation Fix
+
+When content overflows the display:
+- Ensure App.jsx content container uses \`position: absolute; inset: 0\` — NEVER add top/left offsets
+- For interactive map screens: Map goes \`position: absolute; inset: 0\`, content container ALSO uses \`inset: 0\` with \`pointerEvents: "none"\`
+- NO inner wrapper div with \`pointerEvents: "auto"\` — each content panel sets \`pointerEvents: "auto"\` individually, so the map stays clickable wherever there is no panel
+
+## Position Fidelity Fix
+
+When fixing "position-fidelity" issues, a Wireframe Position Reference table is provided showing the INTENDED positions from the Figma wireframe.
+
+**How to fix:**
+- Match the component's CSS left/top/width/height to the wireframe's intended values
+- Positions come directly from the Figma wireframe — use them as-is
+- The content container has NO offset (inset: 0) — do NOT add top/left offsets to the container
+- Prioritize getting the LEFT position correct — horizontal placement errors are the most visible
+- Preserve the component's internal layout — only change its position/size relative to its siblings
+- Each content component on a map screen MUST have \`pointerEvents: "auto"\` on itself
+
+Example: If wireframe says left:122, top:56, width:330, height:330 but code has left:0, top:0 — change left to 122, top to 56.
 
 ## Surface Colors
 
@@ -153,12 +171,43 @@ If "User Requirements" are included in the fix request, those requirements have 
 - Only fix issues that the user did NOT explicitly override
 - Preserve all user-requested interactions, animations, colors, and behaviors exactly as implemented`;
 
-function buildUserMessage(files, issues, userPrompt) {
+function extractPositionReference(componentTrees) {
+  if (!componentTrees || componentTrees.length === 0) return '';
+  const rows = [];
+  function walk(node, depth) {
+    if (node.safeZoneHint && depth > 0 && depth <= 3 && node.type !== 'container') {
+      rows.push({
+        label: node.label || node.type,
+        left: node.safeZoneHint.left,
+        top: node.safeZoneHint.top,
+        width: node.safeZoneHint.width,
+        height: node.safeZoneHint.height,
+      });
+    }
+    for (const child of node.children ?? []) walk(child, depth + 1);
+  }
+  for (const tree of componentTrees) walk(tree, 0);
+  if (rows.length === 0) return '';
+
+  let table = '## Wireframe Position Reference (INTENDED positions)\n\n';
+  table += '| Component | Left | Top | Width | Height |\n';
+  table += '|-----------|------|-----|-------|--------|\n';
+  for (const r of rows) {
+    table += `| ${r.label} | ${r.left}px | ${r.top}px | ${r.width}px | ${r.height}px |\n`;
+  }
+  table += '\nUse these values when fixing position-fidelity issues.\n\n';
+  return table;
+}
+
+function buildUserMessage(files, issues, userPrompt, componentTrees) {
   let msg = '';
 
   if (userPrompt) {
     msg += `## User Requirements (DO NOT revert these)\n\nThe user explicitly requested:\n> ${userPrompt}\n\nAnything implementing these requirements MUST be preserved. Skip fixes that would revert user-requested behavior.\n\n`;
   }
+
+  const posRef = extractPositionReference(componentTrees);
+  if (posRef) msg += posRef;
 
   msg += '## Issues to fix\n\n';
   msg += '```json\n' + JSON.stringify(issues, null, 2) + '\n```\n\n';
@@ -170,18 +219,18 @@ function buildUserMessage(files, issues, userPrompt) {
     msg += `### ${path}\n\`\`\`jsx\n${code}\n\`\`\`\n\n`;
   }
 
-  msg += 'Output ONLY the corrected files using `// FILE: path` format. Focus on the most impactful fixes first: own-chrome → offscreen → component-overlaps → icons → colors. Do NOT restructure internal component layout — only fix inter-component issues.';
+  msg += 'Output ONLY the corrected files using `// FILE: path` format. Focus on the most impactful fixes first: own-chrome → offscreen → position-fidelity → component-overlaps → icons → colors. Do NOT restructure internal component layout — only fix inter-component issues.';
   return msg;
 }
 
-export async function runDesignFixAgent(files, issues, { apiKey, userPrompt }) {
+export async function runDesignFixAgent(files, issues, { apiKey, userPrompt, componentTrees }) {
   const client = new Anthropic({ apiKey });
 
   const stream = client.messages.stream({
     model: MODEL,
     max_tokens: 32768,
     system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: buildUserMessage(files, issues, userPrompt) }],
+    messages: [{ role: 'user', content: buildUserMessage(files, issues, userPrompt, componentTrees) }],
   });
 
   const finalMessage = await stream.finalMessage();

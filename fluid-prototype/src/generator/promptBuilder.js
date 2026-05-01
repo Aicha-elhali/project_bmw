@@ -20,9 +20,9 @@ function toPascalCase(str) {
     .join('');
 }
 
-function collectComponentNames(node, names = new Set()) {
-  names.add(toPascalCase(node.label));
-  for (const child of node.children ?? []) collectComponentNames(child, names);
+function collectComponentNames(node, names = new Set(), depth = 0) {
+  if (depth > 0) names.add(toPascalCase(node.label));
+  for (const child of node.children ?? []) collectComponentNames(child, names, depth + 1);
   return names;
 }
 
@@ -52,6 +52,43 @@ function trimTree(node, maxDepth = 6, depth = 0) {
     trimmed._truncated = `${node.children.length} children omitted`;
   }
   return trimmed;
+}
+
+function buildContentLayoutAnalysis(tree) {
+  const cb = tree.contentBounds ?? { left: 240, top: 70, width: 1400, height: 540 };
+  const entries = [];
+  function walk(node, depth = 0) {
+    if (node.safeZoneHint && depth > 0 && depth <= 3 && node.type !== 'container') {
+      entries.push({ label: node.label, type: node.type, hint: node.safeZoneHint, rel: node.relativeLayout });
+    }
+    for (const child of node.children ?? []) walk(child, depth + 1);
+  }
+  walk(tree);
+  if (entries.length === 0) return '';
+
+  let section = `## PFLICHT-POSITIONEN (aus Wireframe — EXAKT uebernehmen!)
+
+DIESE POSITIONEN SIND DIE EINZIGE QUELLE DER WAHRHEIT fuer die Platzierung.
+Jedes Element MUSS an der angegebenen Position platziert werden. Keine Abweichung > 10px.
+
+Der Content-Container hat \`position: absolute; inset: 0\` — KEIN top/left Offset.
+Positionen in der Tabelle kommen direkt aus dem Figma-Wireframe. Verwende sie 1:1 als CSS left/top.
+
+| Element | Type | left | top | width | height |
+|---------|------|------|-----|-------|--------|
+`;
+  for (const e of entries) {
+    section += `| ${e.label} | ${e.type} | **${e.hint.left}px** | **${e.hint.top}px** | ${e.hint.width}px | ${e.hint.height}px |\n`;
+  }
+  section += `
+**PFLICHT-REGELN:**
+1. Verwende \`position: "absolute"\` mit den **left** und **top** Werten direkt als CSS-Werte innerhalb des Content-Containers
+2. Verwende die **width** und **height** Werte als \`width\` und \`height\` (oder \`minWidth\`/\`minHeight\`)
+3. NICHT die rohen layout.x/layout.y aus dem Component Tree verwenden — die sind Figma-Canvas-Koordinaten
+4. NICHT die Positionen "verbessern" oder "zentrieren" — der Wireframe bestimmt wo ein Element steht
+5. Fuer Map-Screens: Jede Content-Komponente MUSS \`pointerEvents: "auto"\` auf sich selbst setzen
+`;
+  return section;
 }
 
 // ---------------------------------------------------------------------------
@@ -103,11 +140,12 @@ export default NotificationCard;
  * @param {object} apiConfig     — resolved API config from apiRegistry
  * @returns {string} Full prompt text
  */
-export function buildGenerationPrompt(componentTree, tokens, apiConfig = {}, userPrompt = '') {
+export function buildGenerationPrompt(componentTree, tokens, apiConfig = {}, userPrompt = '', mcpContext = null) {
   const trimmedTree    = trimTree(componentTree);
   const componentNames = [...collectComponentNames(componentTree)];
   const usedTypes      = [...collectTypes(componentTree)];
   const hasDisplayShape = componentTree.hasDisplayShape === true;
+  const cb = componentTree.contentBounds ?? { left: 240, top: 70, width: 1400, height: 540 };
 
   const hasAPIs    = apiConfig.hasAPIs;
   const hasMap     = apiConfig.promptSections?.some(s => s.includes('MapLibre'));
@@ -372,7 +410,18 @@ Screen specification:
 Component types in this wireframe: ${usedTypes.join(', ')}
 ${hasAPIs ? `Dynamic services: ${apiConfig.detectedServices.join(', ')}` : ''}
 ${apiSection}${serviceLayerSection}
-## Component Tree (from Figma, with pre-computed styles)
+${buildContentLayoutAnalysis(componentTree)}
+${mcpContext ? `## Figma MCP Tools verfuegbar
+
+Du hast Zugriff auf Figma MCP Tools um das Design besser zu verstehen:
+- **figma_get_design_context**: Holt strukturierten React-Code-Kontext (Styles, Layout, Hierarchie) fuer einen bestimmten Figma-Node
+- **figma_get_metadata**: Holt den Layer-Baum (IDs, Namen, Typen, Positionen) eines Nodes
+- **figma_get_screenshot**: Macht einen Screenshot eines Figma-Nodes
+
+Figma File: ${mcpContext.fileKey}, Frame IDs: ${mcpContext.nodeIds.join(', ')}
+
+Nutze diese Tools wenn du mehr Details zu bestimmten Teilen des Designs brauchst — besonders fuer Positionen, Farben und Abstaende.
+` : ''}## Component Tree (from Figma, with pre-computed styles)
 
 \`\`\`json
 ${JSON.stringify(trimmedTree, null, 2)}
@@ -434,7 +483,57 @@ Files to create:
 ${componentNames.map(n => `- ${n}.jsx`).join('\n')}
 - App.jsx (root — MUSS HMIDisplay/Header/Footer/SideSlots importieren und verwenden${hasAPIs ? ', wraps in context providers' : ''})
 
-## PFLICHT-STRUKTUR fuer App.jsx
+${hasMap ? `## PFLICHT-STRUKTUR fuer App.jsx (INTERACTIVE MAP SCREEN)
+
+\`\`\`jsx
+// FILE: App.jsx
+import React from 'react';
+import Map from 'react-map-gl/maplibre';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import { HMIDisplay, HMIHeader, HMIFooter, LeftSideSlot, RightSideSlot } from './hmi/HMIChrome.jsx';
+// import your content components...
+
+const MAP_STYLE = import.meta.env.VITE_MAPTILER_KEY
+  ? \\\`https://api.maptiler.com/maps/dataviz-dark/style.json?key=\\\${import.meta.env.VITE_MAPTILER_KEY}\\\`
+  : { version: 8, sources: { 'carto-dark': { type: 'raster', tiles: ['https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'], tileSize: 256 } }, layers: [{ id: 'carto-dark-layer', type: 'raster', source: 'carto-dark' }] };
+
+const App = () => {
+  return (
+    <HMIDisplay>
+      {/* INTERACTIVE MAP — fills entire display as background */}
+      <div style={{ position: "absolute", inset: 0 }}>
+        <Map
+          initialViewState={{ longitude: 11.582, latitude: 48.1351, zoom: 13, pitch: 45 }}
+          style={{ width: "100%", height: "100%" }}
+          mapStyle={MAP_STYLE}
+        />
+      </div>
+
+      {/* CONTENT — position absolute, inset 0, KEIN top/left Offset */}
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+          {/* Deine Content-Komponenten hier — jede Komponente setzt pointerEvents: "auto" */}
+          {/* Verwende die PFLICHT-POSITIONEN Tabelle! */}
+      </div>
+
+      {/* CHROME — IMMER vorhanden, schwebt ueber allem */}
+      <HMIHeader />
+      <LeftSideSlot />
+      <RightSideSlot showPark={false} />
+      <HMIFooter active="nav" />
+    </HMIDisplay>
+  );
+};
+
+export default App;
+\`\`\`
+
+**WICHTIG — Interactive Map Screen:**
+- Die Map fuellt das gesamte Display (\`position: absolute, inset: 0\`) — NICHT \`<MapBackground />\` verwenden
+- Content-Container: \`position: absolute, inset: 0, pointerEvents: "none"\` — KEIN top/left Offset
+- Positionen der Elemente INNERHALB des Containers sind relativ zum Content-Bereich (left: 0 = linker Rand)
+- KEIN innerer Wrapper-Div mit \`pointerEvents: "auto"\` — stattdessen setzt JEDE Content-Komponente individuell \`pointerEvents: "auto"\` auf sich selbst. So bleibt die Map ueberall klickbar wo kein Panel ist.
+- Content-Panels verwenden \`backdrop-filter: blur(8px)\` und semi-transparente Backgrounds
+- Verwende die PFLICHT-POSITIONEN Tabelle fuer die Platzierung` : `## PFLICHT-STRUKTUR fuer App.jsx
 
 \`\`\`jsx
 // FILE: App.jsx
@@ -447,11 +546,9 @@ const App = () => {
     <HMIDisplay>
       {/* Background: MapBackground fuer Map-Screens, oder solid gradient fuer andere */}
       <MapBackground />
-      {/* Oder fuer Non-Map-Screens: */}
-      {/* <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,#0E1B30,#0A1428)" }}/> */}
 
-      {/* CONTENT — position absolute, mit Padding fuer Chrome-Zonen */}
-      <div style={{ position: "absolute", inset: 0, padding: "70px 280px 110px 240px", overflow: "hidden" }}>
+      {/* CONTENT — position absolute, inset 0, KEIN top/left Offset */}
+      <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
         {/* Deine Content-Komponenten hier */}
       </div>
 
@@ -465,14 +562,13 @@ const App = () => {
 };
 
 export default App;
-\`\`\`
+\`\`\``}
 
-**WICHTIG:**
-- Content MUSS innerhalb \`padding: "70px 280px 110px 240px"\` platziert werden (Header oben, RightSlot+Chamfer rechts, Footer unten, LeftSlot+Lean links)
-- Content-Elemente die ueber der Map schweben: \`position: absolute\` innerhalb des Content-Containers
-- Cards schweben UEBER dem Hintergrund — niemals full-screen ersetzen
-- Fuer Map-Screens: \`<MapBackground />\` als erstes Kind von HMIDisplay
-- Fuer andere Screens: solid Gradient \`linear-gradient(180deg, #0E1B30, #0A1428)\`
+## ABSOLUTE POSITIONING RULES (PFLICHT — KEINE AUSNAHMEN)
+
+Der Content-Container hat \`position: absolute; inset: 0\` — KEIN top/left Offset.
+Positionen kommen direkt aus dem Figma-Wireframe. NIEMALS top/left Offsets auf den Content-Container setzen.
+Verwende die PFLICHT-POSITIONEN Tabelle fuer die Platzierung.
 ${hasDisplayShape ? `
 ## DISPLAY-SHAPE WIREFRAME ERKANNT
 
@@ -663,9 +759,10 @@ Now generate all content components, then App.jsx last. App.jsx MUSS die PFLICHT
  * @param {function} options.describeDefaultBackground — from frameClassifier
  * @returns {string} Full prompt text
  */
-export function buildMultiFramePrompt(frames, tokens, apiConfig = {}, options = {}, userPrompt = '') {
+export function buildMultiFramePrompt(frames, tokens, apiConfig = {}, options = {}, userPrompt = '', mcpContext = null) {
   const { describePlacement, describeDefaultBackground } = options;
   const hasDisplayShape = frames.some(f => f.tree?.hasDisplayShape);
+  const cb = frames[0]?.tree?.contentBounds ?? { left: 240, top: 70, width: 1400, height: 540 };
 
   // Separate fullscreen frames from partial frames
   const fullscreenFrames = frames.filter(f => !f.classification.isPartial);
@@ -823,8 +920,20 @@ ${backgroundSection}${relationshipSection}
 ${frames.length === 1 ? `Component types: ${usedTypes.join(', ')}` : ''}
 ${hasAPIs ? `Dynamic services: ${apiConfig.detectedServices.join(', ')}` : ''}
 ${apiSection}${serviceLayerSection}
+${frames.map(f => buildContentLayoutAnalysis(f.tree)).filter(Boolean).join('\n')}
 ${frameDescriptions}
+${mcpContext ? `
+## Figma MCP Tools verfuegbar
 
+Du hast Zugriff auf Figma MCP Tools um das Design besser zu verstehen:
+- **figma_get_design_context**: Holt strukturierten React-Code-Kontext (Styles, Layout, Hierarchie) fuer einen bestimmten Figma-Node
+- **figma_get_metadata**: Holt den Layer-Baum (IDs, Namen, Typen, Positionen) eines Nodes
+- **figma_get_screenshot**: Macht einen Screenshot eines Figma-Nodes
+
+Figma File: ${mcpContext.fileKey}, Frame IDs: ${mcpContext.nodeIds.join(', ')}
+
+Nutze diese Tools wenn du mehr Details zu bestimmten Teilen des Designs brauchst — besonders fuer Positionen, Farben und Abstaende.
+` : ''}
 ## Design Tokens
 
 \`\`\`json
@@ -881,28 +990,61 @@ Files to create:
 ${componentNames.map(n => `- ${n}.jsx`).join('\n')}
 - App.jsx (root — MUSS HMIDisplay/Header/Footer/SideSlots importieren und verwenden${hasAPIs ? ', wraps in context providers' : ''})
 
-## PFLICHT-STRUKTUR fuer App.jsx
+${hasMap ? `## PFLICHT-STRUKTUR fuer App.jsx (INTERACTIVE MAP SCREEN)
+
+\`\`\`jsx
+// FILE: App.jsx
+import React from 'react';
+import Map from 'react-map-gl/maplibre';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import { HMIDisplay, HMIHeader, HMIFooter, LeftSideSlot, RightSideSlot } from './hmi/HMIChrome.jsx';
+// import your content components...
+
+const MAP_STYLE = import.meta.env.VITE_MAPTILER_KEY
+  ? \\\`https://api.maptiler.com/maps/dataviz-dark/style.json?key=\\\${import.meta.env.VITE_MAPTILER_KEY}\\\`
+  : { version: 8, sources: { 'carto-dark': { type: 'raster', tiles: ['https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'], tileSize: 256 } }, layers: [{ id: 'carto-dark-layer', type: 'raster', source: 'carto-dark' }] };
+
+const App = () => {
+  return (
+    <HMIDisplay>
+      {/* INTERACTIVE MAP — fills entire display as background */}
+      <div style={{ position: "absolute", inset: 0 }}>
+        <Map
+          initialViewState={{ longitude: 11.582, latitude: 48.1351, zoom: 13, pitch: 45 }}
+          style={{ width: "100%", height: "100%" }}
+          mapStyle={MAP_STYLE}
+        />
+      </div>
+
+      {/* CONTENT — position absolute, inset 0, KEIN top/left Offset */}
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+          {/* Deine Content-Komponenten hier — jede Komponente setzt pointerEvents: "auto" */}
+      </div>
+
+      {/* CHROME */}
+      <HMIHeader />
+      <LeftSideSlot />
+      <RightSideSlot showPark={false} />
+      <HMIFooter active="nav" />
+    </HMIDisplay>
+  );
+};
+
+export default App;
+\`\`\`` : `## PFLICHT-STRUKTUR fuer App.jsx
 
 \`\`\`jsx
 // FILE: App.jsx
 import React from 'react';
 import { HMIDisplay, HMIHeader, HMIFooter, LeftSideSlot, RightSideSlot, MapBackground } from './hmi/HMIChrome.jsx';
-// import your content components...
 
 const App = () => {
   return (
     <HMIDisplay>
-      {/* Background: MapBackground fuer Map-Screens, oder solid gradient fuer andere */}
       <MapBackground />
-      {/* Oder fuer Non-Map-Screens: */}
-      {/* <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,#0E1B30,#0A1428)" }}/> */}
-
-      {/* CONTENT — position absolute, mit Padding fuer Chrome-Zonen */}
-      <div style={{ position: "absolute", inset: 0, padding: "70px 280px 110px 240px", overflow: "hidden" }}>
+      <div style={{ position: "absolute", top: ${cb.top}, left: ${cb.left}, width: ${cb.width}, height: ${cb.height}, overflow: "hidden" }}>
         {/* Deine Content-Komponenten hier */}
       </div>
-
-      {/* CHROME — IMMER vorhanden, KEINE Aenderungen */}
       <HMIHeader />
       <LeftSideSlot />
       <RightSideSlot showPark={false} />
@@ -912,15 +1054,14 @@ const App = () => {
 };
 
 export default App;
-\`\`\`
+\`\`\``}
 
-**WICHTIG:**
-- Content MUSS innerhalb \`padding: "70px 280px 110px 240px"\` platziert werden (Header oben, RightSlot+Chamfer rechts, Footer unten, LeftSlot+Lean links)
-- Content-Elemente die ueber der Map schweben: \`position: absolute\` innerhalb des Content-Containers
-- Cards schweben UEBER dem Hintergrund — niemals full-screen ersetzen
-- Fuer Map-Screens: \`<MapBackground />\` als erstes Kind von HMIDisplay
-- Fuer andere Screens: solid Gradient \`linear-gradient(180deg, #0E1B30, #0A1428)\`
-${frames.length > 1 ? `- **Multi-Frame:** Alle ${frames.length} Frames werden in EINER App.jsx vereint. Verwende \`position: relative\` auf dem Content-Container und \`position: absolute\` fuer Overlays/Popups.` : ''}
+## ABSOLUTE POSITIONING RULES (PFLICHT)
+
+Der Content-Container hat \`position: absolute; inset: 0\` — KEIN top/left Offset.
+Positionen kommen direkt aus dem Figma-Wireframe. NIEMALS top/left Offsets auf den Content-Container setzen.
+Verwende die PFLICHT-POSITIONEN Tabelle fuer die Platzierung.
+${frames.length > 1 ? `- **Multi-Frame:** Alle ${frames.length} Frames werden in EINER App.jsx vereint.` : ''}
 ${partialFrames.some(f => f.classification.frameType === 'popup' || f.classification.frameType === 'modal')
   ? '- Popups/Modals verwenden useState zum Oeffnen/Schliessen. Zeige sie initial als geoeffnet.'
   : ''}

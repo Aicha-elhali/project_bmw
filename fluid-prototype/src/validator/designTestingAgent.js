@@ -22,21 +22,34 @@ These components are provided and MUST be used — never recreated:
 - App.jsx MUST import and render HMIHeader, HMIFooter
 - App.jsx SHOULD import LeftSideSlot, RightSideSlot
 - Generated components must NOT create their own: header, footer, status bar, dock, navigation bar, climate controls, quick-action bar
-- Content must be inside a container with padding ~"70px 280px 110px 240px" to respect chrome zones
+- Content must be inside a container with \`position: absolute; inset: 0\` — NEVER with top/left offsets
 - Rule: "own-chrome" — any hand-built header/footer/dock/statusbar/climate bar
 
 ### 2. Offscreen Detection (critical)
 - Check ALL \`position: absolute\` / \`position: fixed\` elements
-- Verify top/left/right/bottom values fall within 1920×720 canvas
-- Check elements with fixed width+height + position don't overflow canvas edges
-- Content must respect chrome zones: top 70px, right 280px, bottom 110px, left 240px
-- Popups/modals should not exceed ~40% of screen area (768×288px)
+- Verify elements are within the visible display area (1920×720)
+- Popups/modals should not exceed ~40% of screen area
 - Watch for negative margins or transforms that push content offscreen
 - Check for \`overflow: visible\` on containers that could leak content
-- Compute bounding boxes: element at top:X, left:Y with width:W, height:H occupies [Y, X] to [Y+W, X+H]. If any edge exceeds 1920×720 or enters chrome zones, flag it.
 - Rule: "offscreen-element", "overflow-leak", "oversized-modal"
 
-### 2b. Inter-Component Overlap Detection (warning)
+### 2b. Content Container Violations (critical)
+The content container in App.jsx MUST use \`position: absolute; inset: 0; pointerEvents: "none"\`.
+It MUST NOT have top/left offsets — positions come directly from the Figma wireframe.
+
+**What to check:**
+- Content container has top or left offset values (e.g. top: 70, left: 240) — this is WRONG
+- Content container is missing \`pointerEvents: "none"\` on map screens
+
+**Exceptions (do NOT flag):**
+- Map components (MapBackground, interactive Map) — they fill the display intentionally
+- Chrome components (HMIHeader, HMIFooter, LeftSideSlot, RightSideSlot)
+- Background gradient divs with \`inset: 0\`
+
+**Severity:** critical if content container has top/left offsets.
+- Rule: "safe-zone-violation"
+
+### 2c. Inter-Component Overlap Detection (warning)
 Different COMPONENTS must not unintentionally overlap each other on the screen.
 
 **What to check:**
@@ -53,6 +66,30 @@ Different COMPONENTS must not unintentionally overlap each other on the screen.
 
 Only flag clear, obvious cases where two separate components fight for the same screen space.
 - Rule: "component-overlap" (warning)
+
+### 2d. Map Interaction Blocking (critical)
+When the app uses an interactive map (react-map-gl/maplibre), check that the map remains clickable:
+
+**What to check:**
+- Is there a wrapper div with \`pointerEvents: "auto"\` that covers the entire content area? This blocks map clicks.
+- Does any content div WITHOUT \`pointerEvents: "none"\` overlay the map?
+
+**Correct pattern:**
+- Content container: \`position: absolute; inset: 0; pointerEvents: "none"\` — NO top/left offsets
+- NO inner wrapper div with \`pointerEvents: "auto"\` covering the full area
+- Each individual content panel/card sets \`pointerEvents: "auto"\` on itself only
+- The map stays clickable everywhere no panel covers it
+
+**What IS a violation:**
+- A div with \`pointerEvents: "auto"\` and \`width: 100%; height: 100%\` or \`position: relative\` wrapping all content — this blocks the entire map
+- A content container WITHOUT \`pointerEvents: "none"\`
+
+**What is NOT a violation:**
+- Content container with \`pointerEvents: "none"\` — clicks pass through to the map
+- Chrome components (HMIHeader, HMIFooter, LeftSideSlot, RightSideSlot) — they are supposed to overlay the map
+- Individual content panels with \`pointerEvents: "auto"\` — they only block their own area
+
+- Rule: "map-interaction-blocked"
 
 ### 3. Icon Validation (warning, with fix suggestion)
 - Every icon MUST use \`<BMWIcon name="..." />\` from '../hmi/BMWIcons.jsx' or './hmi/BMWIcons.jsx'
@@ -140,6 +177,29 @@ Only flag clear, obvious cases where two separate components fight for the same 
 - Duration: 150-300ms for feedback. Never > 400ms.
 - Rule: "wrong-easing", "slow-animation"
 
+### 10. Position Fidelity (critical)
+When a "Wireframe Position Reference" table is provided, compare every listed component's INTENDED position (from the Figma wireframe) against its ACTUAL position in the generated code.
+
+**How to check:**
+- For each row in the reference table, find the corresponding component in the generated React code
+- Check that the component's CSS position (top, left, width, height) approximately matches the intended values
+- A tolerance of ±30px is acceptable — anything beyond that is a positioning error
+- Pay special attention to the horizontal position (left) — this is where hallucinated positions are most common
+
+**What counts as a violation:**
+- A component placed at left:0 when the wireframe says left:122 → critical (>30px off)
+- A component that takes full width when the wireframe shows it should only be ~400px wide
+- Components stacked vertically when the wireframe shows them side-by-side (or vice versa)
+- Content centered when the wireframe shows it right-aligned (or vice versa)
+
+**What is NOT a violation:**
+- Small differences (±30px) due to rounding or chrome padding adjustments
+- Size differences under 15% of the intended dimension
+- Components not listed in the reference table
+
+For each violation, include the intended vs actual values in the description.
+- Rule: "position-fidelity"
+
 ## Output format
 
 Respond with ONLY this JSON, no other text:
@@ -151,7 +211,7 @@ Respond with ONLY this JSON, no other text:
       "file": "src/components/Foo.jsx",
       "line": 42,
       "severity": "critical" | "warning",
-      "rule": "own-chrome | missing-hmi-display | offscreen-element | overflow-leak | oversized-modal | component-overlap | wrong-icon | emoji-icon | custom-svg-icon | fake-bmw-logo | logo-wrong-size | logo-on-light-bg | neutral-black-bg | flat-card | wrong-map-bg | wrong-font | allcaps-no-tracking | wrong-weight | small-target | max-actions | consumer-pattern | warm-accent | glassmorphism-misuse | wrong-easing | slow-animation | other",
+      "rule": "own-chrome | missing-hmi-display | offscreen-element | overflow-leak | oversized-modal | safe-zone-violation | component-overlap | map-interaction-blocked | position-fidelity | wrong-icon | emoji-icon | custom-svg-icon | fake-bmw-logo | logo-wrong-size | logo-on-light-bg | neutral-black-bg | flat-card | wrong-map-bg | wrong-font | allcaps-no-tracking | wrong-weight | small-target | max-actions | consumer-pattern | warm-accent | glassmorphism-misuse | wrong-easing | slow-animation | other",
       "description": "what is wrong",
       "suggestion": "how to fix it",
       "fix": "optional — replacement JSX code for icon/logo issues"
@@ -159,7 +219,7 @@ Respond with ONLY this JSON, no other text:
   ]
 }
 
-Set "approved" to false if there are ANY critical issues (own-chrome, missing-hmi-display, offscreen-element, fake-bmw-logo).
+Set "approved" to false if there are ANY critical issues (own-chrome, missing-hmi-display, offscreen-element, safe-zone-violation, fake-bmw-logo, position-fidelity, map-interaction-blocked).
 Warnings alone do NOT block approval but MUST be reported.
 
 IMPORTANT: For icon issues, ALWAYS include the "fix" field with the exact replacement code.
@@ -175,7 +235,40 @@ If a "User Requirements" section is included in the review message, those requir
 
 Only flag issues that CONTRADICT what the user explicitly requested, or structural issues (offscreen, missing chrome) that the user did NOT override.`;
 
-function buildUserMessage(files, tokens, userPrompt) {
+function extractPositionReference(componentTrees) {
+  if (!componentTrees || componentTrees.length === 0) return '';
+  const rows = [];
+  function walk(node, depth) {
+    if (node.safeZoneHint && depth > 0 && depth <= 3 && node.type !== 'container') {
+      rows.push({
+        label: node.label || node.type,
+        type: node.type,
+        left: node.safeZoneHint.left,
+        top: node.safeZoneHint.top,
+        width: node.safeZoneHint.width,
+        height: node.safeZoneHint.height,
+        rel: node.relativeLayout,
+      });
+    }
+    for (const child of node.children ?? []) walk(child, depth + 1);
+  }
+  for (const tree of componentTrees) walk(tree, 0);
+  if (rows.length === 0) return '';
+
+  let table = '## Wireframe Position Reference (from Figma)\n\n';
+  table += 'These are the INTENDED positions from the original wireframe. Generated code MUST place components at approximately these positions.\n\n';
+  table += '| Component | Type | Left (px) | Top (px) | Width (px) | Height (px) | X% | Y% |\n';
+  table += '|-----------|------|-----------|---------|------------|-------------|----|----|\n';
+  for (const r of rows) {
+    const xp = r.rel ? `${r.rel.xPercent}%` : '-';
+    const yp = r.rel ? `${r.rel.yPercent}%` : '-';
+    table += `| ${r.label} | ${r.type} | ${r.left} | ${r.top} | ${r.width} | ${r.height} | ${xp} | ${yp} |\n`;
+  }
+  table += '\nTolerance: ±30px for position, ±15% for dimensions. Anything beyond that is a position-fidelity violation.\n\n';
+  return table;
+}
+
+function buildUserMessage(files, tokens, userPrompt, componentTrees) {
   let msg = 'Review these BMW HMI React UI files for design system compliance, offscreen issues, and icon/logo correctness.\n\n';
   msg += '## Available files\n\n';
   msg += [...files.keys()].map(f => `- ${f}`).join('\n');
@@ -197,15 +290,20 @@ function buildUserMessage(files, tokens, userPrompt) {
     msg += `## User Requirements (DO NOT flag deviations caused by these)\n\nThe user explicitly requested:\n> ${userPrompt}\n\nAnything in the code that implements these requirements is CORRECT, even if it deviates from the BMW Design Guide. Only flag issues that contradict the user's request or structural problems the user did not override.\n\n`;
   }
 
+  const posRef = extractPositionReference(componentTrees);
+  if (posRef) msg += posRef;
+
   msg += `Focus on:
 1. Does App.jsx use HMIDisplay + HMIHeader + HMIFooter from hmi/? (critical if not)
 2. Are there any hand-built headers, footers, status bars, docks? (critical — own-chrome)
-3. Are there offscreen elements (position absolute with values outside 1920×720 or invading chrome zones)?
-4. Do any top-level COMPONENTS in App.jsx overlap each other? (e.g. two panels both positioned at the same screen area — but do NOT flag internal layout within a single component)
-5. Are there custom SVG icons or emoji that should be BMWIcon?
-6. Are there fake BMW logos (hand-drawn SVG circles)?
-7. Are background colors neutral-black instead of blue-tinted?
-8. Are cards flat instead of gradient?`;
+3. Are there offscreen elements (content positions outside 1400×540 container bounds)?
+4. Does the content container use \`inset: 0\` WITHOUT any top/left offsets?
+5. Do any top-level COMPONENTS in App.jsx overlap each other? (but do NOT flag internal layout within a single component)
+6. Are there custom SVG icons or emoji that should be BMWIcon?
+7. Are there fake BMW logos (hand-drawn SVG circles)?
+8. Are background colors neutral-black instead of blue-tinted?
+9. Are cards flat instead of gradient?
+10. If a Wireframe Position Reference is provided: are components placed at the intended positions? Compare each component's CSS left/top/width/height against the wireframe values — flag any that deviate by more than ±30px.`;
 
   return msg;
 }
@@ -217,7 +315,7 @@ function parseJsonResponse(text) {
   return JSON.parse(cleaned);
 }
 
-export async function runDesignTestingAgent(files, { apiKey, tokens, userPrompt }) {
+export async function runDesignTestingAgent(files, { apiKey, tokens, userPrompt, componentTrees, figmaScreenshot }) {
   const uiFiles = new Map(
     [...files.entries()].filter(([p]) =>
       !p.includes('services/') && !p.includes('hooks/') && !p.includes('context/')
@@ -230,11 +328,29 @@ export async function runDesignTestingAgent(files, { apiKey, tokens, userPrompt 
 
   const client = new Anthropic({ apiKey });
 
+  const userContent = [];
+
+  if (figmaScreenshot && typeof figmaScreenshot === 'object' && figmaScreenshot.data) {
+    userContent.push({
+      type: 'text',
+      text: 'Here is a screenshot of the original Figma wireframe. Compare the generated code layout against this reference:',
+    });
+    userContent.push({
+      type: 'image',
+      source: { type: 'base64', media_type: figmaScreenshot.mimeType || 'image/png', data: figmaScreenshot.data },
+    });
+  }
+
+  userContent.push({
+    type: 'text',
+    text: buildUserMessage(uiFiles, tokens, userPrompt, componentTrees),
+  });
+
   const response = await client.messages.create({
     model: MODEL,
     max_tokens: 16384,
     system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: buildUserMessage(uiFiles, tokens, userPrompt) }],
+    messages: [{ role: 'user', content: userContent }],
   });
 
   const text = response.content

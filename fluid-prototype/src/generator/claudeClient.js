@@ -151,6 +151,63 @@ export async function generateWithClaude(prompt, apiKey, systemPrompt, label = '
     .join('\n');
 }
 
+/**
+ * Send a prompt to Claude with tool-use support.
+ * Claude can call tools (e.g. Figma MCP) during generation.
+ * Runs an agentic loop until Claude stops calling tools.
+ */
+export async function generateWithTools(prompt, apiKey, systemPrompt, tools, toolHandler, label = 'Generating') {
+  const client = new Anthropic({ apiKey });
+  const MAX_TOOL_CALLS = 8;
+
+  let messages = [{ role: 'user', content: prompt }];
+  let totalText = '';
+  let toolCallCount = 0;
+
+  while (true) {
+    const response = await client.messages.create({
+      model: MODEL,
+      max_tokens: MAX_TOKENS,
+      system: systemPrompt,
+      messages,
+      tools,
+    });
+
+    const textParts = response.content.filter(b => b.type === 'text');
+    const toolUses = response.content.filter(b => b.type === 'tool_use');
+
+    for (const t of textParts) totalText += t.text;
+
+    if (toolUses.length === 0 || response.stop_reason === 'end_turn') {
+      const chars = (totalText.length / 1000).toFixed(1);
+      const files = (totalText.match(/\/\/ FILE:/g) || []).length;
+      process.stderr.write(`\r  ⏳ ${label} complete: ${chars}k chars, ${files} files, ${toolCallCount} tool calls\n`);
+      return totalText;
+    }
+
+    if (toolCallCount >= MAX_TOOL_CALLS) {
+      process.stderr.write(`\n  ⚠  ${label}: max tool calls (${MAX_TOOL_CALLS}) reached, returning partial\n`);
+      return totalText;
+    }
+
+    messages.push({ role: 'assistant', content: response.content });
+
+    const toolResults = [];
+    for (const tu of toolUses) {
+      toolCallCount++;
+      process.stderr.write(`\r  🔧 ${label}: tool call ${toolCallCount}/${MAX_TOOL_CALLS} → ${tu.name}`);
+      try {
+        const result = await toolHandler(tu.name, tu.input);
+        toolResults.push({ type: 'tool_result', tool_use_id: tu.id, content: result });
+      } catch (err) {
+        toolResults.push({ type: 'tool_result', tool_use_id: tu.id, content: [{ type: 'text', text: `Error: ${err.message}` }], is_error: true });
+      }
+    }
+
+    messages.push({ role: 'user', content: toolResults });
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Parsers
 // ---------------------------------------------------------------------------
@@ -224,10 +281,13 @@ export function extractInterfaceDoc(files) {
  * Generate backend files (services, hooks, contexts).
  * @param {string} prompt
  * @param {string} apiKey
+ * @param {{ tools?: Array, toolHandler?: Function }} [mcpOptions]
  * @returns {Promise<{ files: Map<string, string>, interfaceDoc: string|null }>}
  */
-export async function generateBackend(prompt, apiKey) {
-  const raw = await generateWithClaude(prompt, apiKey, BACKEND_SYSTEM_PROMPT, 'Backend');
+export async function generateBackend(prompt, apiKey, mcpOptions) {
+  const raw = mcpOptions?.tools
+    ? await generateWithTools(prompt, apiKey, BACKEND_SYSTEM_PROMPT, mcpOptions.tools, mcpOptions.toolHandler, 'Backend')
+    : await generateWithClaude(prompt, apiKey, BACKEND_SYSTEM_PROMPT, 'Backend');
   const files = parseGeneratedFiles(raw);
   const interfaceDoc = extractInterfaceDoc(files);
   files.delete('INTERFACE.md');
@@ -238,10 +298,13 @@ export async function generateBackend(prompt, apiKey) {
  * Generate frontend files (components, App.jsx).
  * @param {string} prompt
  * @param {string} apiKey
+ * @param {{ tools?: Array, toolHandler?: Function }} [mcpOptions]
  * @returns {Promise<Map<string, string>>}
  */
-export async function generateFrontend(prompt, apiKey) {
-  const raw = await generateWithClaude(prompt, apiKey, FRONTEND_SYSTEM_PROMPT, 'Frontend');
+export async function generateFrontend(prompt, apiKey, mcpOptions) {
+  const raw = mcpOptions?.tools
+    ? await generateWithTools(prompt, apiKey, FRONTEND_SYSTEM_PROMPT, mcpOptions.tools, mcpOptions.toolHandler, 'Frontend')
+    : await generateWithClaude(prompt, apiKey, FRONTEND_SYSTEM_PROMPT, 'Frontend');
   const files = parseGeneratedFiles(raw);
 
   if (files.size === 0) {

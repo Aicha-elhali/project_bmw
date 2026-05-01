@@ -100,8 +100,8 @@ function capitalize(str) {
  * @param {Map<string,string>|null} backendFiles — generated backend files
  * @returns {string}
  */
-export function buildFrontendPrompt(componentTree, tokens, apiConfig, interfaceDoc, backendFiles, userPrompt = '') {
-  const basePrompt = buildGenerationPrompt(componentTree, tokens, apiConfig, userPrompt);
+export function buildFrontendPrompt(componentTree, tokens, apiConfig, interfaceDoc, backendFiles, userPrompt = '', mcpContext = null) {
+  const basePrompt = buildGenerationPrompt(componentTree, tokens, apiConfig, userPrompt, mcpContext);
   const backendContext = buildBackendContextSection(interfaceDoc, backendFiles);
 
   if (!backendContext) return basePrompt;
@@ -124,8 +124,8 @@ export function buildFrontendPrompt(componentTree, tokens, apiConfig, interfaceD
  * @param {Map<string,string>|null} backendFiles
  * @returns {string}
  */
-export function buildMultiFrameFrontendPrompt(frames, tokens, apiConfig, options, interfaceDoc, backendFiles, userPrompt = '') {
-  const basePrompt = buildMultiFramePrompt(frames, tokens, apiConfig, options, userPrompt);
+export function buildMultiFrameFrontendPrompt(frames, tokens, apiConfig, options, interfaceDoc, backendFiles, userPrompt = '', mcpContext = null) {
+  const basePrompt = buildMultiFramePrompt(frames, tokens, apiConfig, options, userPrompt, mcpContext);
   const backendContext = buildBackendContextSection(interfaceDoc, backendFiles);
 
   if (!backendContext) return basePrompt;
