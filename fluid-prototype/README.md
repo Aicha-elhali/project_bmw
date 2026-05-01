@@ -252,9 +252,9 @@ node pipeline.js --frame 16:4
 | Planning Agent | Claude Sonnet 4.6 | Schnell + guenstig, plant nur |
 | Backend Agent | Claude Opus 4.6 | Komplexe Code-Generierung |
 | Frontend Agent | Claude Opus 4.6 | Komplexe UI + Positionen |
-| Design QA | Claude Opus 4.6 | Pixel-genaue Analyse |
+| Design QA | Claude Sonnet 4.6 | Regel-Abgleich, strukturiertes JSON |
 | Design Fix | Claude Opus 4.6 | Praezise Code-Korrekturen |
-| Backend QA | Claude Opus 4.6 | Tiefe Code-Analyse |
+| Backend QA | Claude Sonnet 4.6 | Regel-Abgleich, strukturiertes JSON |
 | Backend Fix | Claude Opus 4.6 | Praezise Code-Korrekturen |
 
 ## Umgebungsvariablen

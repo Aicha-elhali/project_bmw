@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 
-const MODEL = process.env.CLAUDE_MODEL ?? 'claude-opus-4-6';
+const MODEL = process.env.CLAUDE_MODEL ?? 'claude-sonnet-4-6';
 
 const SYSTEM_PROMPT = `You are a senior backend QA engineer for BMW HMI automotive prototypes.
 You review generated React service layers (services, hooks, contexts) for correctness and robustness.

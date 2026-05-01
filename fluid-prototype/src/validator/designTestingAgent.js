@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getRulesForDesignQA } from '../knowledge/bmwDesignSystem.js';
 
-const MODEL = process.env.CLAUDE_MODEL ?? 'claude-opus-4-6';
+const MODEL = process.env.CLAUDE_MODEL ?? 'claude-sonnet-4-6';
 
 const SYSTEM_PROMPT = `You are a senior BMW HMI design QA engineer and pixel-perfect UI auditor.
 You review generated React UI code against the BMW HMI Design System (Operating System X / Panoramic Vision style).
