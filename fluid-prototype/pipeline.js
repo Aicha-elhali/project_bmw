@@ -39,6 +39,7 @@ import { generateBackend, generateFrontend }  from './src/generator/claudeClient
 import { writeOutput }                   from './src/output/builder.js';
 import { runValidationLoop }             from './src/validator/index.js';
 import { classifyFrame, describePlacement, describeDefaultBackground } from './src/classifier/frameClassifier.js';
+import { runPlanningAgent }              from './src/planner/planningAgent.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -205,6 +206,25 @@ async function run() {
     log('MCP', `${mcpOptions.tools.length} Figma tools available for Claude agents`);
   }
 
+  // ── Phase 3.5: Planning Agent ─────────────────────────────────────────
+  log('PHASE 3.5', 'Running Planning Agent…');
+  let planResult;
+  try {
+    const componentTrees = classifiedFrames.map(f => f.tree);
+    const classifications = classifiedFrames.map(f => f.classification);
+    planResult = await runPlanningAgent(componentTrees, classifications, apiConfig, tokens, {
+      apiKey: anthropicKey,
+      userPrompt: '',
+    });
+    logSuccess(`Planning complete: ${planResult.analysis.screenType} — ${planResult.analysis.description}`);
+    if (planResult.analysis.components?.length) {
+      logSuccess(`Components planned: ${planResult.analysis.components.join(', ')}`);
+    }
+  } catch (err) {
+    logWarn(`Planning Agent failed: ${err.message} — continuing without plan`);
+    planResult = { analysis: {}, backendPlan: null, frontendPlan: '', designQAPlan: '', designFixPlan: '' };
+  }
+
   // ── Phase 4a: Backend Agent ────────────────────────────────────────────
   let backendFiles = null;
   let interfaceDoc = null;
@@ -245,13 +265,13 @@ async function run() {
     frontendPrompt = buildMultiFrameFrontendPrompt(
       classifiedFrames, tokens, apiConfig,
       { describePlacement, describeDefaultBackground },
-      interfaceDoc, backendFiles, '', mcpContext,
+      interfaceDoc, backendFiles, '', mcpContext, planResult.frontendPlan,
     );
     log('PHASE 4b', `Multi-frame frontend prompt: ${frontendPrompt.length.toLocaleString()} chars`);
   } else {
     frontendPrompt = buildFrontendPrompt(
       classifiedFrames[0].tree, tokens, apiConfig,
-      interfaceDoc, backendFiles, '', mcpContext,
+      interfaceDoc, backendFiles, '', mcpContext, planResult.frontendPlan,
     );
     log('PHASE 4b', `Single-frame frontend prompt: ${frontendPrompt.length.toLocaleString()} chars`);
   }
@@ -286,6 +306,8 @@ async function run() {
     componentTrees: classifiedFrames.map(f => f.tree),
     figmaScreenshot,
     onProgress: (msg) => log('VALIDATE', msg),
+    designQAPlan: planResult.designQAPlan,
+    designFixPlan: planResult.designFixPlan,
   });
 
   if (validationResult.backendApproved !== undefined) {

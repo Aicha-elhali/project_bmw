@@ -188,4 +188,4 @@ figma.ui.onmessage = (msg) => {
   }
 };
 
-figma.showUI(__html__, { width: 380, height: 620, themeColors: true });
+figma.showUI(__html__, { width: 380, height: 520, themeColors: true });

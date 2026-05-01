@@ -1,175 +1,51 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { parseGeneratedFiles } from '../generator/claudeClient.js';
+import { getRulesForDesignFix } from '../knowledge/bmwDesignSystem.js';
 
 const MODEL = process.env.CLAUDE_MODEL ?? 'claude-opus-4-6';
 
 const SYSTEM_PROMPT = `You are a senior React engineer and BMW HMI design expert who fixes visual and structural UI issues.
 You receive source files and a list of design issues from QA review. Fix them according to the BMW HMI Design System.
 
+The BMW HMI Design System reference is provided in the user message — use it for all color values, icon mappings, and fix patterns.
+
 ## Pre-built Chrome (src/hmi/ — DO NOT MODIFY or output these files)
 
 These components exist and are read-only:
 - **BMWIcons.jsx**: \`export default function BMWIcon({ name, size, color, style })\`
-  Names: note, play, forward, phone, home, fan, car, apps, bell, mute, bluetooth, wifi, mic, wrench, user, triangleAlert, seatbelt, door, minus, plus, seat, park, pin, compass, search, chevronRight, chevronDown, close, bolt, charge, speaker, camera, record, music, settings, arrow, shield
 - **HMIChrome.jsx**: \`export { HMIDisplay, HMIHeader, HMIFooter, LeftSideSlot, RightSideSlot, MapBackground }\`
 
 ## Fix Rules
 
-1. Each corrected file: \`// FILE: <path>\` (e.g. \`// FILE: src/components/Navigation.jsx\`)
+1. Each corrected file: \`// FILE: <path>\`
 2. Output COMPLETE files — not diffs
 3. Only output files that need changes
 4. Do NOT output src/hmi/BMWIcons.jsx or src/hmi/HMIChrome.jsx
 5. Do NOT output main.jsx
 6. Inline styles only
 
-## Icon Replacement
+## Fix Patterns
 
-When fixing icon issues, replace with BMWIcon:
-\`\`\`jsx
-// WRONG — custom SVG
-<svg width="24" height="24" viewBox="0 0 24 24">
-  <path d="M3 9l9-7 9 7v11..." stroke="currentColor"/>
-</svg>
+**Chrome Replacement (own-chrome):**
+Remove custom header/footer/status bar/dock. In App.jsx use HMIDisplay + HMIHeader + HMIFooter + LeftSideSlot + RightSideSlot.
 
-// CORRECT — BMWIcon
-import BMWIcon from '../hmi/BMWIcons.jsx';
-<BMWIcon name="home" size={24} color="#fff"/>
-\`\`\`
+**Offscreen Fix:**
+Content container: \`position: absolute; inset: 0\` — NO top/left offset. Reduce oversized popups. Add overflow: hidden.
 
-### Icon Mapping (common custom SVGs → BMWIcon name)
-- Play triangle / media play → name="play"
-- X / close / dismiss → name="close"
-- Gear / cog / settings → name="settings"
-- Magnifier / search → name="search"
-- Phone / call → name="phone"
-- House / home → name="home"
-- Music note → name="music"
-- Navigation arrow → name="forward"
-- Plus sign → name="plus"
-- Minus sign → name="minus"
-- Bell / notification → name="bell"
-- Map pin / location → name="pin"
-- Compass rose → name="compass"
-- Car / vehicle → name="car"
-- Fan / AC → name="fan"
-- Grid / apps → name="apps"
-- Lightning / bolt → name="bolt"
-- Battery / charge → name="charge"
-- Camera → name="camera"
-- Speaker / volume → name="speaker"
-- Shield → name="shield"
-- Person / avatar → name="user"
-- WiFi → name="wifi"
-- Bluetooth → name="bluetooth"
-- Microphone → name="mic"
-- Mute / sound off → name="mute"
-- Warning triangle → name="triangleAlert"
-- Door → name="door"
-- Seat → name="seat"
-- Parking P → name="park"
-- Record dot → name="record"
-- Wrench / service → name="wrench"
-- Seatbelt → name="seatbelt"
-- Right chevron → name="chevronRight"
-- Down chevron → name="chevronDown"
-- Up arrow → name="arrow"
+**Safe-Zone Violation Fix:**
+Content container MUST use \`position: absolute; inset: 0\` — NEVER add top/left offsets.
+For map screens: map and content container both use \`inset: 0\`, content sets \`pointerEvents: "none"\`, each panel sets \`pointerEvents: "auto"\` individually.
 
-## Logo Replacement (CRITICAL)
+**Position Fidelity Fix:**
+Match CSS left/top/width/height to the Wireframe Position Reference table values. Prioritize LEFT position.
 
-ANY BMW logo that is NOT an \`<img>\` tag pointing to \`/bmw-hmi/bmw-roundel.png\` MUST be replaced.
-This includes: SVG circles/quadrants, CSS-styled divs forming a roundel, canvas drawings, styled "BMW" text.
-
-Replace ALL fake logos with:
-\`\`\`jsx
-<img src="/bmw-hmi/bmw-roundel.png" width={SIZE} height={SIZE} alt="BMW" style={{ borderRadius: '50%' }} />
-\`\`\`
-Typical sizes: 32px (small), 48px (cards), 80px (splash/about).
-- The HMIHeader does NOT have a BMW logo — that's correct, don't add one
-- Never place the logo on white/light backgrounds
-
-## Chrome Replacement
-
-When fixing "own-chrome" issues:
-- REMOVE the custom header/footer/status bar/dock/climate bar code
-- In App.jsx, import and use HMIDisplay + HMIHeader + HMIFooter + LeftSideSlot + RightSideSlot
-
-Required App.jsx structure:
-\`\`\`jsx
-import React from 'react';
-import { HMIDisplay, HMIHeader, HMIFooter, LeftSideSlot, RightSideSlot, MapBackground } from './hmi/HMIChrome.jsx';
-
-const App = () => (
-  <HMIDisplay>
-    <MapBackground /> {/* or gradient for non-map screens */}
-    <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
-      {/* Content components — positions are direct Figma coordinates */}
-    </div>
-    <HMIHeader />
-    <LeftSideSlot />
-    <RightSideSlot showPark={false} />
-    <HMIFooter active="nav" />
-  </HMIDisplay>
-);
-\`\`\`
-
-## Component Overlap Fix
-
-When different components overlap each other in App.jsx:
-- Reposition one of the overlapping components so they occupy different screen regions
-- Do NOT restructure the internal layout of individual components — only change their position relative to each other
-
-## Offscreen Fix
-
-When fixing offscreen elements:
-- Content container uses \`position: absolute; inset: 0\` — NO top/left offset
-- Reduce oversized popups/modals to fit within the visible area
-- Add overflow: hidden to containers that leak
-
-## Safe-Zone Violation Fix
-
-When content overflows the display:
-- Ensure App.jsx content container uses \`position: absolute; inset: 0\` — NEVER add top/left offsets
-- For interactive map screens: Map goes \`position: absolute; inset: 0\`, content container ALSO uses \`inset: 0\` with \`pointerEvents: "none"\`
-- NO inner wrapper div with \`pointerEvents: "auto"\` — each content panel sets \`pointerEvents: "auto"\` individually, so the map stays clickable wherever there is no panel
-
-## Position Fidelity Fix
-
-When fixing "position-fidelity" issues, a Wireframe Position Reference table is provided showing the INTENDED positions from the Figma wireframe.
-
-**How to fix:**
-- Match the component's CSS left/top/width/height to the wireframe's intended values
-- Positions come directly from the Figma wireframe — use them as-is
-- The content container has NO offset (inset: 0) — do NOT add top/left offsets to the container
-- Prioritize getting the LEFT position correct — horizontal placement errors are the most visible
-- Preserve the component's internal layout — only change its position/size relative to its siblings
-- Each content component on a map screen MUST have \`pointerEvents: "auto"\` on itself
-
-Example: If wireframe says left:122, top:56, width:330, height:330 but code has left:0, top:0 — change left to 122, top to 56.
-
-## Surface Colors
-
-WRONG neutral blacks → CORRECT BMW HMI:
-- #000000 / #0D0D0D / #111111 → #0A1428
-- #1A1A1A / #222222 → #1B2A45
-- #262626 / #2A2A2A → #243757
-- #333333 / #3D3D3D → #2A4170
-
-Cards MUST use gradient:
-background: linear-gradient(180deg, #243757 0%, #1B2A45 100%)
-boxShadow: "0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)"
-
-## Typography
-
-Font: "BMW Type Next", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif
-ALL CAPS labels: letterSpacing: "0.06em", textTransform: "uppercase", fontSize: 14, color: "#A8B5C8"
+**Component Overlap Fix:**
+Reposition overlapping components to different screen regions. Do NOT restructure internal component layout.
 
 ## USER OVERRIDE POLICY
 
-If "User Requirements" are included in the fix request, those requirements have ABSOLUTE PRIORITY over the BMW Design Guide. When fixing issues:
-- NEVER revert or modify code that implements explicit user requirements
-- If an issue contradicts a user requirement, SKIP that fix — the user's request wins
-- Only fix issues that the user did NOT explicitly override
-- Preserve all user-requested interactions, animations, colors, and behaviors exactly as implemented`;
+If "User Requirements" are included, those have ABSOLUTE PRIORITY.
+NEVER revert code implementing user requirements. Skip fixes that contradict user requests.`;
 
 function extractPositionReference(componentTrees) {
   if (!componentTrees || componentTrees.length === 0) return '';
@@ -199,11 +75,17 @@ function extractPositionReference(componentTrees) {
   return table;
 }
 
-function buildUserMessage(files, issues, userPrompt, componentTrees) {
+function buildUserMessage(files, issues, userPrompt, componentTrees, plan) {
   let msg = '';
 
+  if (plan) {
+    msg += `## Fix Plan (from Planning Agent)\n\n${plan}\n\n`;
+  }
+
+  msg += `## BMW HMI Design System Reference\n\n${getRulesForDesignFix()}\n\n`;
+
   if (userPrompt) {
-    msg += `## User Requirements (DO NOT revert these)\n\nThe user explicitly requested:\n> ${userPrompt}\n\nAnything implementing these requirements MUST be preserved. Skip fixes that would revert user-requested behavior.\n\n`;
+    msg += `## User Requirements (DO NOT revert these)\n\n> ${userPrompt}\n\nPreserve all user-requested behavior. Skip fixes that would revert user requirements.\n\n`;
   }
 
   const posRef = extractPositionReference(componentTrees);
@@ -219,18 +101,18 @@ function buildUserMessage(files, issues, userPrompt, componentTrees) {
     msg += `### ${path}\n\`\`\`jsx\n${code}\n\`\`\`\n\n`;
   }
 
-  msg += 'Output ONLY the corrected files using `// FILE: path` format. Focus on the most impactful fixes first: own-chrome → offscreen → position-fidelity → component-overlaps → icons → colors. Do NOT restructure internal component layout — only fix inter-component issues.';
+  msg += 'Output ONLY the corrected files using `// FILE: path` format. Focus on most impactful fixes first: own-chrome → offscreen → position-fidelity → component-overlaps → icons → colors.';
   return msg;
 }
 
-export async function runDesignFixAgent(files, issues, { apiKey, userPrompt, componentTrees }) {
+export async function runDesignFixAgent(files, issues, { apiKey, userPrompt, componentTrees, plan }) {
   const client = new Anthropic({ apiKey });
 
   const stream = client.messages.stream({
     model: MODEL,
     max_tokens: 32768,
     system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: buildUserMessage(files, issues, userPrompt, componentTrees) }],
+    messages: [{ role: 'user', content: buildUserMessage(files, issues, userPrompt, componentTrees, plan || '') }],
   });
 
   const finalMessage = await stream.finalMessage();

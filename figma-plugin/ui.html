@@ -142,7 +142,7 @@
 
   .prompt-textarea {
     width: 100%;
-    min-height: 100px;
+    min-height: 72px;
     max-height: 200px;
     padding: 12px;
     background: var(--bg-input);
@@ -168,10 +168,10 @@
   /* Generate button */
   .btn-generate {
     width: 100%;
-    padding: 12px;
+    padding: 8px 12px;
     border: none;
     border-radius: var(--radius);
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
@@ -186,10 +186,9 @@
   /* Progress */
   .progress {
     display: none;
-    flex-direction: column;
-    gap: 2px;
-    flex: 1;
-    overflow-y: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
     padding: 8px 0;
   }
 
@@ -229,10 +228,10 @@
 
   .btn-open {
     width: 100%;
-    padding: 12px;
+    padding: 8px 12px;
     border: none;
     border-radius: var(--radius);
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
@@ -377,16 +376,8 @@ z.B. Beim Klick auf 'Annehmen' soll ein gruener Puls-Effekt erscheinen. Die Anru
   }
 
   function addPhase(id, label) {
-    const el = document.createElement('div');
-    el.className = 'phase active';
-    el.id = 'phase-' + id;
-    el.innerHTML = '<div class="dot"></div><span>' + label + '</span>';
-
-    const phases = document.querySelectorAll('.phase.active');
-    phases.forEach(p => { if (p.id !== el.id) p.className = 'phase done'; });
-
-    document.getElementById('progress').appendChild(el);
-    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    var container = document.getElementById('progress');
+    container.innerHTML = '<div class="phase active" id="phase-' + id + '"><div class="dot"></div><span>' + label + '</span></div>';
   }
 
   function startGeneration() {

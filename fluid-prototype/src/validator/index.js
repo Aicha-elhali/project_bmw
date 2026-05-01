@@ -10,7 +10,7 @@ import { join, dirname }            from 'path';
 // Generic validation loop
 // ---------------------------------------------------------------------------
 
-async function runLoop(outputDir, { apiKey, maxIterations, tokens, interfaceDoc, userPrompt, componentTrees, figmaScreenshot, onProgress, testFn, fixFn, label }) {
+async function runLoop(outputDir, { apiKey, maxIterations, tokens, interfaceDoc, userPrompt, componentTrees, figmaScreenshot, onProgress, testFn, fixFn, label, plan }) {
   let prevIssueCount = Infinity;
 
   for (let i = 0; i < maxIterations; i++) {
@@ -18,7 +18,7 @@ async function runLoop(outputDir, { apiKey, maxIterations, tokens, interfaceDoc,
     const files = await readOutputFiles(outputDir);
     onProgress(`[${label}] Iteration ${i + 1}/${maxIterations}: testing ${files.size} files...`);
 
-    const verdict = await testFn(files, { apiKey, tokens, interfaceDoc, userPrompt, componentTrees, figmaScreenshot });
+    const verdict = await testFn(files, { apiKey, tokens, interfaceDoc, userPrompt, componentTrees, figmaScreenshot, plan });
     onProgress(`[${label}] Iteration ${i + 1}/${maxIterations}: ${verdict.summary}`);
 
     if (verdict.approved) {
@@ -36,7 +36,7 @@ async function runLoop(outputDir, { apiKey, maxIterations, tokens, interfaceDoc,
     prevIssueCount = toFix.length;
 
     onProgress(`[${label}] Iteration ${i + 1}/${maxIterations}: fixing ${toFix.length} issues...`);
-    const corrected = await fixFn(files, toFix, { apiKey, tokens, userPrompt, componentTrees, figmaScreenshot });
+    const corrected = await fixFn(files, toFix, { apiKey, tokens, userPrompt, componentTrees, figmaScreenshot, plan });
 
     if (corrected.size === 0) {
       onProgress(`[${label}] Fix agent returned no changes, stopping`);
@@ -54,7 +54,7 @@ async function runLoop(outputDir, { apiKey, maxIterations, tokens, interfaceDoc,
 
   // Final check
   const finalFiles = await readOutputFiles(outputDir);
-  const finalVerdict = await testFn(finalFiles, { apiKey, tokens, interfaceDoc, userPrompt, componentTrees });
+  const finalVerdict = await testFn(finalFiles, { apiKey, tokens, interfaceDoc, userPrompt, componentTrees, plan });
   onProgress(`[${label}] Final: ${finalVerdict.summary}`);
 
   return {
@@ -100,13 +100,16 @@ export async function runDesignValidationLoop(outputDir, options = {}) {
     componentTrees = null,
     figmaScreenshot = null,
     onProgress = () => {},
+    designQAPlan = '',
+    designFixPlan = '',
   } = options;
 
   return runLoop(outputDir, {
     apiKey, maxIterations, tokens, interfaceDoc: null, userPrompt, componentTrees, figmaScreenshot, onProgress,
-    testFn: runDesignTestingAgent,
-    fixFn: runDesignFixAgent,
+    testFn: (files, opts) => runDesignTestingAgent(files, { ...opts, plan: designQAPlan }),
+    fixFn: (files, issues, opts) => runDesignFixAgent(files, issues, { ...opts, plan: designFixPlan }),
     label: 'Design',
+    plan: designQAPlan,
   });
 }
 
@@ -123,6 +126,8 @@ export async function runValidationLoop(outputDir, options = {}) {
     componentTrees = null,
     figmaScreenshot = null,
     onProgress = () => {},
+    designQAPlan = '',
+    designFixPlan = '',
   } = options;
 
   // Phase 1: Backend validation (max 2 iterations)
@@ -145,6 +150,8 @@ export async function runValidationLoop(outputDir, options = {}) {
     componentTrees,
     figmaScreenshot,
     onProgress,
+    designQAPlan,
+    designFixPlan,
   });
 
   return {

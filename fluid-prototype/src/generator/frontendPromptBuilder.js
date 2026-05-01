@@ -100,8 +100,8 @@ function capitalize(str) {
  * @param {Map<string,string>|null} backendFiles — generated backend files
  * @returns {string}
  */
-export function buildFrontendPrompt(componentTree, tokens, apiConfig, interfaceDoc, backendFiles, userPrompt = '', mcpContext = null) {
-  const basePrompt = buildGenerationPrompt(componentTree, tokens, apiConfig, userPrompt, mcpContext);
+export function buildFrontendPrompt(componentTree, tokens, apiConfig, interfaceDoc, backendFiles, userPrompt = '', mcpContext = null, plan = '') {
+  const basePrompt = buildGenerationPrompt(componentTree, tokens, apiConfig, userPrompt, mcpContext, plan);
   const backendContext = buildBackendContextSection(interfaceDoc, backendFiles);
 
   if (!backendContext) return basePrompt;
@@ -124,8 +124,8 @@ export function buildFrontendPrompt(componentTree, tokens, apiConfig, interfaceD
  * @param {Map<string,string>|null} backendFiles
  * @returns {string}
  */
-export function buildMultiFrameFrontendPrompt(frames, tokens, apiConfig, options, interfaceDoc, backendFiles, userPrompt = '', mcpContext = null) {
-  const basePrompt = buildMultiFramePrompt(frames, tokens, apiConfig, options, userPrompt, mcpContext);
+export function buildMultiFrameFrontendPrompt(frames, tokens, apiConfig, options, interfaceDoc, backendFiles, userPrompt = '', mcpContext = null, plan = '') {
+  const basePrompt = buildMultiFramePrompt(frames, tokens, apiConfig, options, userPrompt, mcpContext, plan);
   const backendContext = buildBackendContextSection(interfaceDoc, backendFiles);
 
   if (!backendContext) return basePrompt;

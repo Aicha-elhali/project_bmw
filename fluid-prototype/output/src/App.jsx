@@ -20,21 +20,22 @@ const MAP_STYLE = import.meta.env.VITE_MAPTILER_KEY
     };
 
 const mapOverrideCSS = `
-  .maplibregl-map { background: #0F1A2C !important; }
-  .maplibregl-ctrl-group { display: none !important; }
+  .maplibregl-map { background: #0F1A2C; }
+  .maplibregl-ctrl-group { display: none; }
   .maplibregl-ctrl-attrib { background: rgba(10,20,40,0.8) !important; color: rgba(255,255,255,0.4) !important; font-size: 0.625rem !important; }
   .maplibregl-ctrl-attrib a { color: rgba(255,255,255,0.4) !important; }
-  .maplibregl-popup { display: none !important; }
 `;
 
-const MapContent = () => {
+const AppContent = () => {
   const { position, destination, route } = useNavigation();
 
   return (
-    <>
+    <HMIDisplay>
+      {/* Dark theme overrides for map controls */}
+      <style>{mapOverrideCSS}</style>
+
       {/* INTERACTIVE MAP — fills entire display as background */}
       <div style={{ position: 'absolute', inset: 0 }}>
-        <style>{mapOverrideCSS}</style>
         <Map
           initialViewState={{
             longitude: position.lon,
@@ -44,10 +45,9 @@ const MapContent = () => {
           }}
           style={{ width: '100%', height: '100%' }}
           mapStyle={MAP_STYLE}
-          attributionControl={true}
         >
           {/* Current position marker */}
-          <Marker longitude={position.lon} latitude={position.lat} anchor="center">
+          <Marker longitude={position.lon} latitude={position.lat}>
             <div
               style={{
                 width: 20,
@@ -62,15 +62,15 @@ const MapContent = () => {
 
           {/* Destination marker */}
           {destination && (
-            <Marker longitude={destination.lon} latitude={destination.lat} anchor="center">
+            <Marker longitude={destination.lon} latitude={destination.lat}>
               <div
                 style={{
-                  width: 24,
-                  height: 24,
-                  background: '#E63946',
+                  width: 16,
+                  height: 16,
+                  background: '#5BA3FF',
                   border: '2px solid #fff',
                   borderRadius: '50%',
-                  boxShadow: '0 0 16px rgba(230,57,70,0.6)',
+                  boxShadow: '0 0 12px rgba(91,163,255,0.6)',
                 }}
               />
             </Marker>
@@ -113,16 +113,14 @@ const MapContent = () => {
       <LeftSideSlot />
       <RightSideSlot showPark={false} />
       <HMIFooter active="nav" />
-    </>
+    </HMIDisplay>
   );
 };
 
 const App = () => {
   return (
     <NavigationProvider>
-      <HMIDisplay>
-        <MapContent />
-      </HMIDisplay>
+      <AppContent />
     </NavigationProvider>
   );
 };

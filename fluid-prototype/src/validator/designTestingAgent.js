@@ -1,19 +1,13 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { getRulesForDesignQA } from '../knowledge/bmwDesignSystem.js';
 
 const MODEL = process.env.CLAUDE_MODEL ?? 'claude-opus-4-6';
 
 const SYSTEM_PROMPT = `You are a senior BMW HMI design QA engineer and pixel-perfect UI auditor.
 You review generated React UI code against the BMW HMI Design System (Operating System X / Panoramic Vision style).
-The target is a 1920×720 dark-theme car display with blue-tinted surfaces, chamfered bottom-right corner.
+Target: 1920x720 dark-theme car display with blue-tinted surfaces, chamfered bottom-right corner.
 
-You act like a human reviewer who opens the code, traces the layout, and catches visual issues that automated linters miss.
-
-## Pre-built Chrome (src/hmi/ — read-only, never modified)
-
-These components are provided and MUST be used — never recreated:
-- **BMWIcons.jsx**: \`export default function BMWIcon({ name, size, color, style })\`
-  Names: note, play, forward, phone, home, fan, car, apps, bell, mute, bluetooth, wifi, mic, wrench, user, triangleAlert, seatbelt, door, minus, plus, seat, park, pin, compass, search, chevronRight, chevronDown, close, bolt, charge, speaker, camera, record, music, settings, arrow, shield
-- **HMIChrome.jsx**: \`export { HMIDisplay, HMIHeader, HMIFooter, LeftSideSlot, RightSideSlot, MapBackground }\`
+The BMW HMI Design System reference is provided in the user message — use it as ground truth for all checks.
 
 ## Categories to check
 
@@ -26,178 +20,60 @@ These components are provided and MUST be used — never recreated:
 - Rule: "own-chrome" — any hand-built header/footer/dock/statusbar/climate bar
 
 ### 2. Offscreen Detection (critical)
-- Check ALL \`position: absolute\` / \`position: fixed\` elements
-- Verify elements are within the visible display area (1920×720)
+- Check ALL \`position: absolute\` / \`position: fixed\` elements are within 1920x720
 - Popups/modals should not exceed ~40% of screen area
-- Watch for negative margins or transforms that push content offscreen
-- Check for \`overflow: visible\` on containers that could leak content
+- Watch for negative margins or transforms pushing content offscreen
 - Rule: "offscreen-element", "overflow-leak", "oversized-modal"
 
 ### 2b. Content Container Violations (critical)
 The content container in App.jsx MUST use \`position: absolute; inset: 0; pointerEvents: "none"\`.
-It MUST NOT have top/left offsets — positions come directly from the Figma wireframe.
-
-**What to check:**
-- Content container has top or left offset values (e.g. top: 70, left: 240) — this is WRONG
-- Content container is missing \`pointerEvents: "none"\` on map screens
-
-**Exceptions (do NOT flag):**
-- Map components (MapBackground, interactive Map) — they fill the display intentionally
-- Chrome components (HMIHeader, HMIFooter, LeftSideSlot, RightSideSlot)
-- Background gradient divs with \`inset: 0\`
-
-**Severity:** critical if content container has top/left offsets.
+It MUST NOT have top/left offsets (e.g., top: 70, left: 240) — this is WRONG.
 - Rule: "safe-zone-violation"
 
 ### 2c. Inter-Component Overlap Detection (warning)
-Different COMPONENTS must not unintentionally overlap each other on the screen.
-
-**What to check:**
-- In App.jsx, look at the top-level content components being rendered. Do any of them occupy the same screen region?
-- Example: a route info panel and a call popup both positioned at the same top/right area = overlap.
-- Two cards/panels with absolute positioning whose bounding rectangles clearly intersect.
-
-**What is NOT an overlap (do not flag):**
-- Elements WITHIN the same component (internal layout of a card, button icons inside buttons, text inside a panel — that's the component's own layout, leave it alone)
-- Content layered over MapBackground
-- HMIHeader/HMIFooter/LeftSideSlot/RightSideSlot over the map (they are chrome)
-- Intentional modal overlays with backdrop/dimming
-- Small incidental overlaps of a few pixels between neighboring components
-
-Only flag clear, obvious cases where two separate components fight for the same screen space.
-- Rule: "component-overlap" (warning)
+Different COMPONENTS must not unintentionally overlap on screen.
+Do NOT flag elements WITHIN the same component (internal layout is the component's concern).
+- Rule: "component-overlap"
 
 ### 2d. Map Interaction Blocking (critical)
-When the app uses an interactive map (react-map-gl/maplibre), check that the map remains clickable:
-
-**What to check:**
-- Is there a wrapper div with \`pointerEvents: "auto"\` that covers the entire content area? This blocks map clicks.
-- Does any content div WITHOUT \`pointerEvents: "none"\` overlay the map?
-
-**Correct pattern:**
-- Content container: \`position: absolute; inset: 0; pointerEvents: "none"\` — NO top/left offsets
-- NO inner wrapper div with \`pointerEvents: "auto"\` covering the full area
-- Each individual content panel/card sets \`pointerEvents: "auto"\` on itself only
-- The map stays clickable everywhere no panel covers it
-
-**What IS a violation:**
-- A div with \`pointerEvents: "auto"\` and \`width: 100%; height: 100%\` or \`position: relative\` wrapping all content — this blocks the entire map
-- A content container WITHOUT \`pointerEvents: "none"\`
-
-**What is NOT a violation:**
-- Content container with \`pointerEvents: "none"\` — clicks pass through to the map
-- Chrome components (HMIHeader, HMIFooter, LeftSideSlot, RightSideSlot) — they are supposed to overlay the map
-- Individual content panels with \`pointerEvents: "auto"\` — they only block their own area
-
+For interactive map screens: no wrapper div with \`pointerEvents: "auto"\` covering the full content area.
+Each individual content panel sets \`pointerEvents: "auto"\` on itself only.
 - Rule: "map-interaction-blocked"
 
 ### 3. Icon Validation (warning, with fix suggestion)
-- Every icon MUST use \`<BMWIcon name="..." />\` from '../hmi/BMWIcons.jsx' or './hmi/BMWIcons.jsx'
-- Detect custom inline SVGs that replicate available BMWIcon icons
-- Detect Unicode symbols used as icons: ▶ ✕ ☰ ⚙ 🔍 ← → ↑ ↓ + − × ≡
-- Detect emoji used as icons: any emoji character
-- Detect other icon libraries (FontAwesome, Material Icons, Lucide, Heroicons)
-- For each wrong icon, suggest the correct BMWIcon name:
-  - Play/triangle → "play"
-  - Close/X → "close"
-  - Settings/gear → "settings"
-  - Search/magnifier → "search"
-  - Phone → "phone"
-  - Home/house → "home"
-  - Music/note → "music"
-  - Arrow/navigation → "arrow" or "forward"
-  - Plus → "plus", Minus → "minus"
-  - Bell/notification → "bell"
-  - Pin/location → "pin"
-  - Compass → "compass"
-  - Car/vehicle → "car"
-  - Fan/climate → "fan"
-  - Apps/grid → "apps"
-  - Bolt/lightning → "bolt"
-  - Charge/battery → "charge"
-  - Camera → "camera"
-  - Speaker/volume → "speaker"
-  - Shield/security → "shield"
-  - User/person → "user"
-  - Wifi → "wifi"
-  - Bluetooth → "bluetooth"
-  - Microphone → "mic"
-  - Mute/sound-off → "mute"
-  - Warning/alert → "triangleAlert"
-  - Door → "door"
-  - Seat → "seat"
-  - Parking → "park"
-  - Record/dot → "record"
-  - Wrench/service → "wrench"
-  - Seatbelt → "seatbelt"
-  - Chevron right → "chevronRight"
-  - Chevron down → "chevronDown"
+Every icon MUST use BMWIcon from hmi/BMWIcons.jsx. Detect custom SVGs, Unicode symbols, emoji, other icon libraries.
+For each wrong icon, suggest the correct BMWIcon name (see Icon Mapping in the design system reference).
 - Rule: "wrong-icon", "emoji-icon", "custom-svg-icon"
 
-### 4. Logo Validation (critical, with fix suggestion)
-- ANY BMW logo that is NOT \`<img src="/bmw-hmi/bmw-roundel.png" ... />\` is WRONG. This includes:
-  - SVG elements that draw circles, quadrants, or arcs resembling a BMW roundel
-  - CSS-styled divs with border-radius, borders, and background colors forming a circle logo
-  - Canvas drawings of the BMW emblem
-  - Text "BMW" styled (large font, rotated, or positioned) to look like a logo
-  - Unicode or emoji symbols used as logo substitutes
-- The ONLY correct BMW logo implementation is: \`<img src="/bmw-hmi/bmw-roundel.png" width={SIZE} height={SIZE} alt="BMW" style={{ borderRadius: '50%' }} />\`
-- The HMIHeader does NOT contain a BMW logo — that is correct, do not flag it
-- Typical sizes: 32px (header/small), 48px (cards), 80px (splash/about)
-- Never on white/light backgrounds
-- Rule: "fake-bmw-logo" (critical), "logo-wrong-size", "logo-on-light-bg"
+### 4. Logo Validation (critical)
+Check all BMW logos against the Logo rules in the design system reference. Any hand-drawn logo (SVG, CSS, canvas, styled text) is WRONG.
+The HMIHeader does NOT contain a BMW logo — that is correct.
+- Rule: "fake-bmw-logo", "logo-wrong-size", "logo-on-light-bg"
 
 ### 5. Surface Colors
-- WRONG neutral blacks: #000000, #0D0D0D, #111111, #1A1A1A, #222222, #262626, #333333
-- CORRECT blue-tinted: #0A1428 (canvas), #1B2A45 (elevated), #243757 (elevated-alt), #2A4170 (strong)
-- Cards MUST use gradient: linear-gradient(180deg, #243757, #1B2A45) + inset shadow
-- Map backgrounds: #0F1A2C (not #0A0A0A or #111)
+Check for neutral blacks vs BMW blue-tinted surfaces (see Surface Color Correction in the design system reference).
+Cards MUST use gradient, not flat single color.
 - Rule: "neutral-black-bg", "flat-card", "wrong-map-bg"
 
 ### 6. Typography
-- Font MUST be "BMW Type Next", "Inter", system-ui, ... (never Arial/Helvetica alone)
-- ALL CAPS labels need letterSpacing >= "0.06em"
-- Display numbers: fontWeight 100. Headings: 300. Body: 400.
+Font must match the Typography section in the design system reference. ALL CAPS labels need proper letter-spacing.
 - Rule: "wrong-font", "allcaps-no-tracking", "wrong-weight"
 
 ### 7. Touch Targets & Layout
-- Interactive elements >= 64px (minimum 48px secondary)
-- No more than 7 primary actions visible
+Interactive elements >= 64px (minimum 48px secondary). No more than 7 primary actions visible.
 - Rule: "small-target", "max-actions"
 
 ### 8. Brand Identity
-- No emoji anywhere
-- No consumer-app patterns (Instagram bottom nav, hamburger menu)
-- No warm accents (gold, red as primary)
-- No glassmorphism on solid surfaces (only over map)
+No emoji, no consumer-app patterns, no warm accents, no glassmorphism on solid surfaces.
 - Rule: "emoji-icon", "consumer-pattern", "warm-accent", "glassmorphism-misuse"
 
 ### 9. Motion
-- Easing: cubic-bezier(0.4, 0, 0.2, 1). No springs/bounces.
-- Duration: 150-300ms for feedback. Never > 400ms.
+Easing: cubic-bezier(0.4, 0, 0.2, 1). Duration: 150-300ms for feedback. Never > 400ms.
 - Rule: "wrong-easing", "slow-animation"
 
 ### 10. Position Fidelity (critical)
-When a "Wireframe Position Reference" table is provided, compare every listed component's INTENDED position (from the Figma wireframe) against its ACTUAL position in the generated code.
-
-**How to check:**
-- For each row in the reference table, find the corresponding component in the generated React code
-- Check that the component's CSS position (top, left, width, height) approximately matches the intended values
-- A tolerance of ±30px is acceptable — anything beyond that is a positioning error
-- Pay special attention to the horizontal position (left) — this is where hallucinated positions are most common
-
-**What counts as a violation:**
-- A component placed at left:0 when the wireframe says left:122 → critical (>30px off)
-- A component that takes full width when the wireframe shows it should only be ~400px wide
-- Components stacked vertically when the wireframe shows them side-by-side (or vice versa)
-- Content centered when the wireframe shows it right-aligned (or vice versa)
-
-**What is NOT a violation:**
-- Small differences (±30px) due to rounding or chrome padding adjustments
-- Size differences under 15% of the intended dimension
-- Components not listed in the reference table
-
-For each violation, include the intended vs actual values in the description.
+When a "Wireframe Position Reference" table is provided, compare intended positions against actual code.
+Tolerance: ±30px for position, ±15% for dimensions. Focus on horizontal position (left).
 - Rule: "position-fidelity"
 
 ## Output format
@@ -219,21 +95,15 @@ Respond with ONLY this JSON, no other text:
   ]
 }
 
-Set "approved" to false if there are ANY critical issues (own-chrome, missing-hmi-display, offscreen-element, safe-zone-violation, fake-bmw-logo, position-fidelity, map-interaction-blocked).
+Set "approved" to false if there are ANY critical issues.
 Warnings alone do NOT block approval but MUST be reported.
-
-IMPORTANT: For icon issues, ALWAYS include the "fix" field with the exact replacement code.
-Example: { "rule": "custom-svg-icon", "fix": "<BMWIcon name=\\"play\\" size={28} color=\\"#fff\\"/>" }
+For icon issues, ALWAYS include the "fix" field with exact replacement code.
 
 ## USER OVERRIDE POLICY
 
-If a "User Requirements" section is included in the review message, those requirements have ABSOLUTE PRIORITY over the BMW Design Guide. Do NOT flag issues that are a direct result of user requirements. Examples:
-- User requests a specific color scheme → do NOT flag "warm-accent" or "neutral-black-bg"
-- User requests a specific animation style → do NOT flag "wrong-easing" or "slow-animation"
-- User requests custom interactions → do NOT flag those as "consumer-pattern"
-- User requests emoji or specific icons → do NOT flag "emoji-icon"
-
-Only flag issues that CONTRADICT what the user explicitly requested, or structural issues (offscreen, missing chrome) that the user did NOT override.`;
+If "User Requirements" are included, those have ABSOLUTE PRIORITY over the BMW Design Guide.
+Do NOT flag issues that are a direct result of user requirements.
+Only flag issues that CONTRADICT what the user requested, or structural issues the user did NOT override.`;
 
 function extractPositionReference(componentTrees) {
   if (!componentTrees || componentTrees.length === 0) return '';
@@ -256,7 +126,7 @@ function extractPositionReference(componentTrees) {
   if (rows.length === 0) return '';
 
   let table = '## Wireframe Position Reference (from Figma)\n\n';
-  table += 'These are the INTENDED positions from the original wireframe. Generated code MUST place components at approximately these positions.\n\n';
+  table += 'These are the INTENDED positions. Generated code MUST place components at approximately these positions.\n\n';
   table += '| Component | Type | Left (px) | Top (px) | Width (px) | Height (px) | X% | Y% |\n';
   table += '|-----------|------|-----------|---------|------------|-------------|----|----|\n';
   for (const r of rows) {
@@ -264,46 +134,48 @@ function extractPositionReference(componentTrees) {
     const yp = r.rel ? `${r.rel.yPercent}%` : '-';
     table += `| ${r.label} | ${r.type} | ${r.left} | ${r.top} | ${r.width} | ${r.height} | ${xp} | ${yp} |\n`;
   }
-  table += '\nTolerance: ±30px for position, ±15% for dimensions. Anything beyond that is a position-fidelity violation.\n\n';
+  table += '\nTolerance: ±30px for position, ±15% for dimensions.\n\n';
   return table;
 }
 
-function buildUserMessage(files, tokens, userPrompt, componentTrees) {
-  let msg = 'Review these BMW HMI React UI files for design system compliance, offscreen issues, and icon/logo correctness.\n\n';
-  msg += '## Available files\n\n';
-  msg += [...files.keys()].map(f => `- ${f}`).join('\n');
-  msg += '\n\n## File contents\n\n';
+function buildUserMessage(files, tokens, userPrompt, componentTrees, plan) {
+  let msg = 'Review these BMW HMI React UI files for design system compliance.\n\n';
 
+  if (plan) {
+    msg += `## QA Plan (from Planning Agent)\n\n${plan}\n\n`;
+  }
+
+  msg += `## BMW HMI Design System Reference\n\n${getRulesForDesignQA()}\n\n`;
+
+  msg += '## File contents\n\n';
   for (const [path, code] of files) {
-    // Skip service/hook/context files — design tester only reviews UI
     if (path.includes('services/') || path.includes('hooks/') || path.includes('context/')) continue;
-    // Skip pre-built hmi files
     if (path.includes('src/hmi/')) continue;
     msg += `### ${path}\n\`\`\`jsx\n${code}\n\`\`\`\n\n`;
   }
 
   if (tokens) {
-    msg += `## Design tokens (ground truth)\n\`\`\`json\n${JSON.stringify(tokens, null, 2)}\n\`\`\`\n\n`;
+    msg += `## Design tokens\n\`\`\`json\n${JSON.stringify(tokens, null, 2)}\n\`\`\`\n\n`;
   }
 
   if (userPrompt) {
-    msg += `## User Requirements (DO NOT flag deviations caused by these)\n\nThe user explicitly requested:\n> ${userPrompt}\n\nAnything in the code that implements these requirements is CORRECT, even if it deviates from the BMW Design Guide. Only flag issues that contradict the user's request or structural problems the user did not override.\n\n`;
+    msg += `## User Requirements (DO NOT flag deviations caused by these)\n\n> ${userPrompt}\n\n`;
   }
 
   const posRef = extractPositionReference(componentTrees);
   if (posRef) msg += posRef;
 
   msg += `Focus on:
-1. Does App.jsx use HMIDisplay + HMIHeader + HMIFooter from hmi/? (critical if not)
-2. Are there any hand-built headers, footers, status bars, docks? (critical — own-chrome)
-3. Are there offscreen elements (content positions outside 1400×540 container bounds)?
-4. Does the content container use \`inset: 0\` WITHOUT any top/left offsets?
-5. Do any top-level COMPONENTS in App.jsx overlap each other? (but do NOT flag internal layout within a single component)
+1. Does App.jsx use HMIDisplay + HMIHeader + HMIFooter from hmi/?
+2. Are there hand-built headers, footers, status bars, docks?
+3. Are there offscreen elements?
+4. Does the content container use \`inset: 0\` WITHOUT top/left offsets?
+5. Do top-level COMPONENTS in App.jsx overlap?
 6. Are there custom SVG icons or emoji that should be BMWIcon?
-7. Are there fake BMW logos (hand-drawn SVG circles)?
+7. Are there fake BMW logos?
 8. Are background colors neutral-black instead of blue-tinted?
 9. Are cards flat instead of gradient?
-10. If a Wireframe Position Reference is provided: are components placed at the intended positions? Compare each component's CSS left/top/width/height against the wireframe values — flag any that deviate by more than ±30px.`;
+10. If position reference provided: are components at intended positions?`;
 
   return msg;
 }
@@ -315,7 +187,7 @@ function parseJsonResponse(text) {
   return JSON.parse(cleaned);
 }
 
-export async function runDesignTestingAgent(files, { apiKey, tokens, userPrompt, componentTrees, figmaScreenshot }) {
+export async function runDesignTestingAgent(files, { apiKey, tokens, userPrompt, componentTrees, figmaScreenshot, plan }) {
   const uiFiles = new Map(
     [...files.entries()].filter(([p]) =>
       !p.includes('services/') && !p.includes('hooks/') && !p.includes('context/')
@@ -343,7 +215,7 @@ export async function runDesignTestingAgent(files, { apiKey, tokens, userPrompt,
 
   userContent.push({
     type: 'text',
-    text: buildUserMessage(uiFiles, tokens, userPrompt, componentTrees),
+    text: buildUserMessage(uiFiles, tokens, userPrompt, componentTrees, plan || ''),
   });
 
   const response = await client.messages.create({
