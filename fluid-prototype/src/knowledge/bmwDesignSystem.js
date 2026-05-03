@@ -334,6 +334,68 @@ REQUIRED:
 - Critical warnings in direct line of sight`;
 
 // ---------------------------------------------------------------------------
+// XVII. PRE-BUILT CONTENT COMPONENTS
+// ---------------------------------------------------------------------------
+
+export const COMPONENTS = `### Pre-built Content Components (src/hmi/BMWComponents.jsx — USE instead of recreating)
+
+These components are design-system-compliant and MUST be used when the wireframe contains matching patterns.
+Import: \`import { BMWCard, BMWButton, ... } from '../hmi/BMWComponents.jsx';\`
+From App.jsx: \`import { BMWCard, BMWButton, ... } from './hmi/BMWComponents.jsx';\`
+
+**BMWCard** — Gradient card container. THE standard content surface.
+  \`<BMWCard padding={20} radius={12} glow={false} style={{}}>{children}</BMWCard>\`
+  - glow={true} adds BMW Blue glow for accent/CTA cards
+
+**BMWButton** — Touch-friendly button with variants.
+  \`<BMWButton variant="primary|secondary|ghost|danger" icon="iconName" size="sm|md|lg" disabled onClick>{label}</BMWButton>\`
+  - primary: BMW Blue with glow | secondary: subtle white-alpha | ghost: transparent | danger: red
+
+**BMWIconButton** — 64x64 icon-only touch target.
+  \`<BMWIconButton icon="iconName" size={64} iconSize={28} active={false} label="Label" onClick />\`
+
+**BMWSearchBar** — Search input with icon.
+  \`<BMWSearchBar placeholder="Search" value={v} onChange={fn} transparent={false} />\`
+  - transparent={true}: blurred glass for map overlays
+
+**BMWBadge** — Status pill / tag.
+  \`<BMWBadge variant="default|primary|success|warning|danger|info">Text</BMWBadge>\`
+
+**BMWListItem** — Row with icon, title, subtitle, right content.
+  \`<BMWListItem icon="wrench" iconColor="#F0C040" title="Title" subtitle="Sub" right="2:48 pm" showChevron onClick />\`
+
+**BMWLabel** — Uppercase small label (14px, tracking 0.06em).
+  \`<BMWLabel>Section title</BMWLabel>\`
+
+**BMWDivider** — Separator line.
+  \`<BMWDivider vertical={false} spacing={12} />\`
+
+**BMWProgressBar** — Horizontal progress indicator.
+  \`<BMWProgressBar value={65} max={100} color="#1C69D4" height={4} showLabel />\`
+
+**BMWToggle** — On/off switch.
+  \`<BMWToggle checked={false} onChange={fn} disabled />\`
+
+**BMWSlider** — Value slider (click to set).
+  \`<BMWSlider value={50} min={0} max={100} color="#1C69D4" onChange={fn} label="Vol" showValue />\`
+
+**BMWModal** — Centered overlay panel.
+  \`<BMWModal title="Title" onClose={fn} width={560}>{children}</BMWModal>\`
+
+**BMWScrollList** — Scrollable vertical list with BMW scrollbar.
+  \`<BMWScrollList gap={12}>{items}</BMWScrollList>\`
+
+**BMWInfoRow** — Label-value pair with optional icon.
+  \`<BMWInfoRow label="Range" value="245 km" icon="bolt" />\`
+
+**BMWTabBar** — Horizontal segmented tabs.
+  \`<BMWTabBar tabs={[{id:"a",label:"Tab A"},{id:"b",label:"Tab B"}]} active="a" onChange={fn} />\`
+  - Also accepts string arrays: tabs={["Tab A","Tab B"]}
+
+**RULE:** When a wireframe element matches one of these components, IMPORT and USE the pre-built version.
+Customize via props and style overrides — do NOT rebuild the same pattern with raw divs.`;
+
+// ---------------------------------------------------------------------------
 // Assembled rule sets per agent type
 // ---------------------------------------------------------------------------
 
@@ -349,7 +411,7 @@ export function getDesignKnowledge() {
 export function getRulesForFrontend() {
   return [
     COLORS, SURFACE_COLOR_MAPPING, TYPOGRAPHY, CARD_RECIPE, ICONS,
-    CHROME, LOGO, LAYOUT, CONTENT_CONTAINER, SHADOWS, MOTION,
+    CHROME, COMPONENTS, LOGO, LAYOUT, CONTENT_CONTAINER, SHADOWS, MOTION,
     TRANSPARENCY, HOVER_PRESS, CONTENT_VOICE, SAFETY, BANNED,
   ].join('\n\n');
 }
@@ -357,13 +419,13 @@ export function getRulesForFrontend() {
 export function getRulesForDesignQA() {
   return [
     COLORS, SURFACE_COLOR_MAPPING, TYPOGRAPHY, CARD_RECIPE, ICONS, ICON_MAPPING,
-    CHROME, LOGO, LAYOUT, CONTENT_CONTAINER, MOTION, BANNED, SAFETY,
+    CHROME, COMPONENTS, LOGO, LAYOUT, CONTENT_CONTAINER, MOTION, BANNED, SAFETY,
   ].join('\n\n');
 }
 
 export function getRulesForDesignFix() {
   return [
     COLORS, SURFACE_COLOR_MAPPING, TYPOGRAPHY, CARD_RECIPE, ICONS, ICON_MAPPING,
-    CHROME, LOGO, LAYOUT, CONTENT_CONTAINER,
+    CHROME, COMPONENTS, LOGO, LAYOUT, CONTENT_CONTAINER,
   ].join('\n\n');
 }

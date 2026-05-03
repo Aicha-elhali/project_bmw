@@ -97,37 +97,33 @@ Positionen in der Tabelle kommen direkt aus dem Figma-Wireframe. Verwende sie 1:
 // ---------------------------------------------------------------------------
 
 const EXAMPLE_COMPONENT = `
-// FILE: NotificationCard.jsx
-// Figma: card "notification"
+// FILE: NotificationList.jsx
+// Figma: notification list — uses pre-built BMWComponents
 import React from 'react';
-import BMWIcon from '../hmi/BMWIcons.jsx';
+import { BMWListItem, BMWScrollList, BMWLabel } from '../hmi/BMWComponents.jsx';
 
-const NotificationCard = ({ icon = "wrench", title, subtitle, time, style: overrideStyle }) => {
+const NotificationList = ({ notifications = [], style: overrideStyle }) => {
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 16,
-      background: 'linear-gradient(180deg, #243757 0%, #1B2A45 100%)',
-      borderRadius: 12, padding: '16px 20px',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
-      ...overrideStyle,
-    }}>
-      <div style={{
-        width: 44, height: 44, borderRadius: 12,
-        background: 'rgba(255,255,255,0.06)',
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <BMWIcon name={icon} size={26} color="#F0C040"/>
-      </div>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 20, color: '#fff' }}>{title}</div>
-        {subtitle && <div style={{ fontSize: 16, color: '#A8B5C8', marginTop: 2 }}>{subtitle}</div>}
-      </div>
-      {time && <span style={{ fontSize: 14, color: '#5C6B82' }}>{time}</span>}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, ...overrideStyle }}>
+      <BMWLabel>Notification overview</BMWLabel>
+      <BMWScrollList gap={8}>
+        {notifications.map((n, i) => (
+          <BMWListItem
+            key={i}
+            icon={n.icon || "wrench"}
+            iconColor={n.iconColor || "#F0C040"}
+            title={n.title}
+            subtitle={n.subtitle}
+            right={n.time}
+            showChevron
+          />
+        ))}
+      </BMWScrollList>
     </div>
   );
 };
 
-export default NotificationCard;
+export default NotificationList;
 `.trim();
 
 // ---------------------------------------------------------------------------
@@ -201,65 +197,69 @@ export default App;
 // Reference patterns
 // ---------------------------------------------------------------------------
 
-const REFERENCE_PATTERNS = `## REFERENZ — So sieht korrekter BMW HMI Content aus
+const REFERENCE_PATTERNS = `## REFERENZ — So sieht korrekter BMW HMI Content aus (MIT Pre-built Components)
 
 ### Map Screen Content (Referenz-Pattern):
 \`\`\`jsx
+import { BMWSearchBar, BMWCard, BMWBadge, BMWButton, BMWLabel } from '../hmi/BMWComponents.jsx';
+
 {/* Search bar — schwebend ueber der Map */}
-<div style={{
-  position: "absolute", top: 94, left: 200, width: 360,
-  background: "rgba(27,42,69,0.85)", backdropFilter: "blur(8px)",
-  borderRadius: 4, padding: "12px 18px",
-  display: "flex", alignItems: "center", gap: 12,
-}}>
-  <BMWIcon name="search" size={20} color="#A8B5C8"/>
-  <span style={{ fontSize: 18, color: "#8C9BB0" }}>Search</span>
-</div>
+<BMWSearchBar
+  transparent
+  placeholder="Search"
+  style={{ position: "absolute", top: 94, left: 200, width: 360, pointerEvents: "auto" }}
+/>
 
 {/* POI info card — unter der Searchbar */}
-<div style={{
-  position: "absolute", top: 164, left: 200, width: 360,
-  background: "linear-gradient(180deg,#243757,#1B2A45)",
-  borderRadius: 4, padding: 20,
-  boxShadow: "0 4px 16px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)",
-}}>
-  <div style={{ fontSize: 14, letterSpacing: "0.06em", textTransform: "uppercase", color: "#A8B5C8", marginBottom: 8 }}>A9 · Highway</div>
-  <div style={{ fontSize: 28, fontWeight: 300, color: "#fff", lineHeight: 1.15 }}>AC Mer Germany GmbH</div>
+<BMWCard style={{ position: "absolute", top: 164, left: 200, width: 360, pointerEvents: "auto" }}>
+  <BMWLabel>A9 · Highway</BMWLabel>
+  <div style={{ fontSize: 28, fontWeight: 300, color: "#fff", lineHeight: 1.15, marginTop: 8 }}>AC Mer Germany GmbH</div>
   <div style={{ fontSize: 16, color: "#A8B5C8", marginTop: 6 }}>Schlossstrasse 14, 80803 Muenchen</div>
   <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-    <span style={{ background: "rgba(60,210,120,0.16)", color: "#3CD278", padding: "6px 12px", borderRadius: 999, fontSize: 13, letterSpacing: "0.06em", textTransform: "uppercase" }}>Available</span>
-    <span style={{ background: "#1C69D4", color: "#fff", padding: "6px 12px", borderRadius: 999, fontSize: 13 }}>22 kW</span>
+    <BMWBadge variant="success">Available</BMWBadge>
+    <BMWBadge variant="primary">22 kW</BMWBadge>
   </div>
-  <button style={{
-    marginTop: 16, width: "100%", background: "#1C69D4", color: "#fff",
-    border: 0, borderRadius: 4, padding: "14px 18px", fontSize: 18, cursor: "pointer",
-    boxShadow: "0 0 20px rgba(28,105,212,0.5)",
-  }}>Start route guidance</button>
-</div>
+  <BMWButton variant="primary" style={{ marginTop: 16, width: "100%" }}>Start route guidance</BMWButton>
+</BMWCard>
 \`\`\`
 
 ### Notification List (Referenz-Pattern):
 \`\`\`jsx
-{/* Label */}
-<div style={{ fontSize: 14, letterSpacing: "0.06em", textTransform: "uppercase", color: "#A8B5C8" }}>Notification overview</div>
+import { BMWListItem, BMWScrollList, BMWLabel } from '../hmi/BMWComponents.jsx';
 
-{/* Notification card */}
-<div style={{
-  display: "flex", alignItems: "center", gap: 16,
-  background: "linear-gradient(180deg,#243757,#1B2A45)", borderRadius: 12,
-  padding: "16px 20px", boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
-}}>
-  <div style={{ width: 44, height: 44, borderRadius: 12,
-    background: "rgba(255,255,255,0.06)",
-    display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-    <BMWIcon name="wrench" size={26} color="#F0C040"/>
+<BMWLabel>Notification overview</BMWLabel>
+
+<BMWScrollList gap={8}>
+  <BMWListItem
+    icon="wrench" iconColor="#F0C040"
+    title="High-voltage system fault"
+    subtitle="Drive carefully. Visit a Service Partner."
+    right="2:48 pm"
+  />
+  <BMWListItem
+    icon="triangleAlert" iconColor="#E63946"
+    title="Tyre pressure low"
+    subtitle="Front left: 1.8 bar"
+    right="1:22 pm"
+  />
+</BMWScrollList>
+\`\`\`
+
+### Settings Panel (Referenz-Pattern):
+\`\`\`jsx
+import { BMWCard, BMWInfoRow, BMWToggle, BMWSlider, BMWTabBar, BMWDivider } from '../hmi/BMWComponents.jsx';
+
+<BMWTabBar tabs={["Display","Sound","System"]} active="Sound" onChange={setTab} />
+
+<BMWCard style={{ marginTop: 16 }}>
+  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+    <span style={{ fontSize: 20, color: "#fff" }}>Speed-dependent volume</span>
+    <BMWToggle checked={true} onChange={fn} />
   </div>
-  <div style={{ flex: 1 }}>
-    <div style={{ fontSize: 20, color: "#fff" }}>High-voltage system fault</div>
-    <div style={{ fontSize: 16, color: "#A8B5C8", marginTop: 2 }}>Drive carefully. Visit a Service Partner.</div>
-  </div>
-  <span style={{ fontSize: 14, color: "#5C6B82" }}>2:48 pm</span>
-</div>
+  <BMWDivider spacing={16} />
+  <BMWSlider label="Bass" value={65} min={0} max={100} onChange={fn} showValue />
+  <BMWSlider label="Treble" value={40} min={0} max={100} onChange={fn} showValue style={{ marginTop: 12 }} />
+</BMWCard>
 \`\`\``;
 
 // ---------------------------------------------------------------------------
@@ -402,12 +402,13 @@ ${userPrompt
     ? `12. **User-requested elements**: Implement everything the user describes, even if not in the tree.`
     : `12. **No hallucinated elements**: ONLY implement UI elements from the component tree.`}
 13. **Chrome**: KEINE eigenen Header/Footer/SideSlots. NUR pre-built Komponenten aus \`hmi/\`.
+14. **Pre-built Components**: IMMER BMWComponents verwenden wenn ein Element einem pre-built Component entspricht (BMWCard, BMWButton, BMWListItem, BMWBadge, etc.). NICHT die gleichen Patterns mit rohen divs nachbauen.
 
 ## CRITICAL — File completeness rules
 
-14. **Every \`// FILE:\` block MUST be complete** (import, function, JSX, export default).
-15. **Every import MUST resolve** to a generated file or pre-built hmi/ component.
-16. **Self-check**: Verify all imports resolve before finishing.
+15. **Every \`// FILE:\` block MUST be complete** (import, function, JSX, export default).
+16. **Every import MUST resolve** to a generated file or pre-built hmi/ component.
+17. **Self-check**: Verify all imports resolve before finishing.
 
 Now generate all content components, then App.jsx last. App.jsx MUSS die PFLICHT-STRUKTUR verwenden. Content muss wie die Referenz-Patterns aussehen.
 `.trim();
@@ -572,8 +573,9 @@ ${userPrompt
     ? `12. **User elements**: Implement user-described elements even if not in tree.`
     : `12. **No hallucination**: Only elements from component tree.`}
 13. **Chrome**: No custom Header/Footer/SideSlots — only pre-built from hmi/.
-14. **Complete files**: Every // FILE: block must be runnable.
-15. **Imports resolve**: Every import must resolve.
+14. **Pre-built Components**: ALWAYS use BMWComponents (BMWCard, BMWButton, BMWListItem, BMWBadge, etc.) when an element matches. Do NOT rebuild with raw divs.
+15. **Complete files**: Every // FILE: block must be runnable.
+16. **Imports resolve**: Every import must resolve.
 
 Now generate all content components, then App.jsx last.
 `.trim();

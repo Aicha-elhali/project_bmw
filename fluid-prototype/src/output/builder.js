@@ -278,7 +278,7 @@ async function copyHMIComponents(outputDir) {
   const hmiOutDir = join(outputDir, 'src', 'hmi');
   await mkdir(hmiOutDir, { recursive: true });
 
-  const files = ['BMWIcons.jsx', 'HMIChrome.jsx'];
+  const files = ['BMWIcons.jsx', 'HMIChrome.jsx', 'BMWComponents.jsx'];
   for (const file of files) {
     try {
       await copyFile(join(HMI_ESM_DIR, file), join(hmiOutDir, file));
